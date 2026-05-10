@@ -1,0 +1,147 @@
+/**
+ * Manages codex app-server child process lifecycle.
+ * Spawns the process, initializes the JSON-RPC handshake, and handles restart on exit.
+ */
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { spawn } from 'node:child_process';
+import {
+  CodexJsonRpcClient,
+  CodexJsonRpcClientEvents,
+} from './codex-jsonrpc-client';
+import type { InitializeResponse } from './codex-schema';
+
+@Injectable()
+export class CodexProcessManager implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(CodexProcessManager.name);
+  private client: CodexJsonRpcClient | null = null;
+  private initResult: InitializeResponse | null = null;
+  private restarting = false;
+  private destroyed = false;
+
+  /** Listeners registered via onNotification/onServerRequest before the client is ready. */
+  private readonly eventForwarders: Array<{
+    event: keyof CodexJsonRpcClientEvents;
+    handler: (...args: unknown[]) => void;
+  }> = [];
+
+  constructor(private readonly config: ConfigService) {}
+
+  async onModuleInit(): Promise<void> {
+    await this.start();
+  }
+
+  onModuleDestroy(): void {
+    this.destroyed = true;
+    this.client?.destroy();
+    this.client = null;
+  }
+
+  /** Returns the current JSON-RPC client, or null if not connected. */
+  getClient(): CodexJsonRpcClient | null {
+    return this.client;
+  }
+
+  /** Returns the initialize response, or null if not initialized. */
+  getInitResult(): InitializeResponse | null {
+    return this.initResult;
+  }
+
+  /**
+   * Registers a forwarded event listener that persists across process restarts.
+   *
+   * @param event - The event name to listen for
+   * @param handler - The callback function
+   */
+  addListener(
+    event: keyof CodexJsonRpcClientEvents,
+    handler: (...args: unknown[]) => void,
+  ): void {
+    this.eventForwarders.push({ event, handler });
+    if (this.client) {
+      this.client.on(event, handler);
+    }
+  }
+
+  private async start(): Promise<void> {
+    const codexBin = this.config.get<string>('CODEX_BIN', 'codex');
+    const codexHome = this.config.get<string>('CODEX_HOME', '');
+
+    const env: Record<string, string> = { ...process.env } as Record<
+      string,
+      string
+    >;
+    if (codexHome) {
+      env['CODEX_HOME'] = codexHome;
+    }
+
+    this.logger.log(`Spawning ${codexBin} app-server (stdio)`);
+
+    const child = spawn(codexBin, ['app-server', '--listen', 'stdio://'], {
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env,
+    });
+
+    this.client = new CodexJsonRpcClient(child);
+
+    // Attach persisted event forwarders
+    for (const { event, handler } of this.eventForwarders) {
+      this.client.on(event, handler);
+    }
+
+    this.client.on('error', (err) => {
+      this.logger.warn(`Codex client error: ${err.message}`);
+    });
+
+    this.client.on('close', (code, signal) => {
+      this.logger.warn(
+        `Codex app-server exited (code=${code}, signal=${signal})`,
+      );
+      this.client = null;
+      this.initResult = null;
+      if (!this.destroyed) {
+        void this.restart();
+      }
+    });
+
+    try {
+      this.initResult = await this.client.initialize({
+        clientInfo: {
+          name: 'codex_webui',
+          title: 'Codex WebUI',
+          version: '0.1.0',
+        },
+        capabilities: { experimentalApi: true },
+      });
+      this.logger.log(
+        `Codex app-server initialized (codexHome=${this.initResult.codexHome}, platform=${this.initResult.platformOs})`,
+      );
+    } catch (err) {
+      this.logger.error(
+        `Failed to initialize codex app-server: ${(err as Error).message}`,
+      );
+      this.client.destroy();
+      this.client = null;
+      if (!this.destroyed) {
+        void this.restart();
+      }
+    }
+  }
+
+  private async restart(): Promise<void> {
+    if (this.restarting || this.destroyed) return;
+    this.restarting = true;
+    const delayMs = 3000;
+    this.logger.log(`Restarting codex app-server in ${delayMs}ms...`);
+    await new Promise((r) => setTimeout(r, delayMs));
+    this.restarting = false;
+    if (!this.destroyed) {
+      await this.start();
+    }
+  }
+}

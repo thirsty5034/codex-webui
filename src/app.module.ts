@@ -4,6 +4,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'node:path';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { CodexModule } from './codex/codex.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { AppService } from './app.service';
       rootPath: join(__dirname, '..', 'public'),
       exclude: ['/api/(.*)'],
     }),
+    CodexModule,
   ],
   controllers: [AppController],
   providers: [AppService],
