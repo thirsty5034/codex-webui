@@ -1,0 +1,82 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { ThreadsService } from './threads.service';
+import { CodexService } from '../codex/codex.service';
+
+describe('ThreadsService', () => {
+  let service: ThreadsService;
+  const mockCodex = { request: jest.fn() };
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        ThreadsService,
+        { provide: CodexService, useValue: mockCodex },
+      ],
+    }).compile();
+
+    service = module.get(ThreadsService);
+    mockCodex.request.mockReset();
+  });
+
+  it('should call thread/start', async () => {
+    const response = { thread: { id: 't1' }, model: 'gpt-4' };
+    mockCodex.request.mockResolvedValue(response);
+
+    const result = await service.startThread({
+      experimentalRawEvents: false,
+      persistExtendedHistory: true,
+    });
+
+    expect(result).toEqual(response);
+    expect(mockCodex.request).toHaveBeenCalledWith('thread/start', {
+      experimentalRawEvents: false,
+      persistExtendedHistory: true,
+    });
+  });
+
+  it('should call thread/list with params', async () => {
+    mockCodex.request.mockResolvedValue({ data: [], nextCursor: null });
+
+    await service.listThreads({ limit: 10 });
+
+    expect(mockCodex.request).toHaveBeenCalledWith('thread/list', {
+      limit: 10,
+    });
+  });
+
+  it('should call thread/read with includeTurns', async () => {
+    mockCodex.request.mockResolvedValue({ thread: { id: 't1' } });
+
+    await service.readThread('t1', true);
+
+    expect(mockCodex.request).toHaveBeenCalledWith('thread/read', {
+      threadId: 't1',
+      includeTurns: true,
+    });
+  });
+
+  it('should call turn/start', async () => {
+    mockCodex.request.mockResolvedValue({ turn: { id: 'turn1' } });
+
+    await service.startTurn({
+      threadId: 't1',
+      input: [{ type: 'text', text: 'hello' }] as never,
+    });
+
+    expect(mockCodex.request).toHaveBeenCalledWith('turn/start', {
+      threadId: 't1',
+      input: [{ type: 'text', text: 'hello' }],
+    });
+  });
+
+  it('should call turn/interrupt', async () => {
+    mockCodex.request.mockResolvedValue({});
+
+    await service.interruptTurn('t1', 'turn1');
+
+    expect(mockCodex.request).toHaveBeenCalledWith('turn/interrupt', {
+      threadId: 't1',
+      turnId: 'turn1',
+    });
+  });
+});

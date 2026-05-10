@@ -5,6 +5,8 @@ import { join } from 'node:path';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { CodexModule } from './codex/codex.module';
+import { ModelsModule } from './models/models.module';
+import { ThreadsModule } from './threads/threads.module';
 
 @Module({
   imports: [
@@ -14,6 +16,8 @@ import { CodexModule } from './codex/codex.module';
       exclude: ['/api/(.*)'],
     }),
     CodexModule,
+    ThreadsModule,
+    ModelsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
