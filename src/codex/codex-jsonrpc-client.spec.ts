@@ -6,7 +6,11 @@ function createMockProcess(): ChildProcess {
   const proc = new EventEmitter() as ChildProcess;
   proc.stdout = new Readable({ read() {} });
   proc.stderr = new Readable({ read() {} });
-  proc.stdin = new Writable({ write(_chunk, _enc, cb) { cb(); } });
+  proc.stdin = new Writable({
+    write(_chunk, _enc, cb) {
+      cb();
+    },
+  });
   proc.kill = jest.fn();
   return proc;
 }
@@ -53,7 +57,8 @@ describe('CodexJsonRpcClient', () => {
     });
 
     proc.stdout!.push(
-      JSON.stringify({ method: 'thread/started', params: { threadId: 't1' } }) + '\n',
+      JSON.stringify({ method: 'thread/started', params: { threadId: 't1' } }) +
+        '\n',
     );
   });
 
