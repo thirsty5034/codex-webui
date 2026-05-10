@@ -46,6 +46,12 @@ export interface TurnItemData {
   tool?: string;
   arguments?: unknown;
   result?: unknown;
+  /** commandExecution: the shell command that was run. */
+  command?: string;
+  /** commandExecution: aggregated stdout/stderr output. */
+  aggregatedOutput?: string;
+  /** commandExecution: exit code. */
+  exitCode?: number;
 }
 
 export interface Turn {

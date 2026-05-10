@@ -40,9 +40,23 @@ function parseTurnItem(item: TurnItemData): TurnItem | null {
       return {
         type: 'commandExecution',
         itemId: item.id,
+        content: item.aggregatedOutput ?? item.text ?? '',
+        completed: true,
+        command: item.command,
+        exitCode: item.exitCode,
+      };
+    case 'fileChange': {
+      const changes = (item as unknown as Record<string, unknown>).changes as
+        | Array<{ file?: string }>
+        | undefined;
+      return {
+        type: 'fileChange',
+        itemId: item.id,
         content: item.text ?? '',
         completed: true,
+        filePath: changes?.[0]?.file,
       };
+    }
     default:
       return null;
   }
@@ -110,6 +124,9 @@ interface TimelineState {
     itemId: string,
     updater: (existing: TurnItem | undefined) => TurnItem,
   ) => void;
+
+  /** Updates the turn-level unified diff. */
+  updateTurnDiff: (turnId: string, diff: string) => void;
 
   setLoading: (loading: boolean) => void;
   expandReasoning: (itemId: string) => void;
@@ -265,6 +282,24 @@ export const useTimelineStore = create<TimelineState>((set, get) => ({
         return { items: updated, completed };
       }
       return { items: [...items, updater(undefined)], completed };
+    });
+  },
+
+  updateTurnDiff: (turnId, diff) => {
+    set((s) => {
+      const { timeline } = s;
+      const idx = timeline.findIndex(
+        (e) => e.kind === 'turn' && e.turnId === turnId,
+      );
+      if (idx >= 0) {
+        const entry = timeline[idx];
+        if (entry.kind === 'turn') {
+          const updated = [...timeline];
+          updated[idx] = { ...entry, diff };
+          return { timeline: updated };
+        }
+      }
+      return {};
     });
   },
 

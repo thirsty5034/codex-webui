@@ -10,6 +10,8 @@ import { ReasoningItem } from './turn-items/reasoning-item';
 import { AgentMessageItem } from './turn-items/agent-message-item';
 import { ToolCallItem } from './turn-items/tool-call-item';
 import { CommandItem } from './turn-items/command-item';
+import { FileChangeItem } from './turn-items/file-change-item';
+import { DiffViewer } from './turn-items/diff-viewer';
 
 const entryVariants = {
   hidden: { opacity: 0, y: 10 },
@@ -34,6 +36,8 @@ function renderItem(item: TurnItem) {
       return <ToolCallItem key={item.itemId} item={item} />;
     case 'commandExecution':
       return <CommandItem key={item.itemId} item={item} />;
+    case 'fileChange':
+      return <FileChangeItem key={item.itemId} item={item} />;
   }
 }
 
@@ -53,6 +57,8 @@ export function TurnBlock({ entry }: Props) {
 
       <div className="min-w-0 flex-1 space-y-2">
         {entry.items.map(renderItem)}
+
+        {entry.diff && <DiffViewer diff={entry.diff} />}
 
         {!entry.completed && entry.items.length === 0 && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">

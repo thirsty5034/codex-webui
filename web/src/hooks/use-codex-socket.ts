@@ -12,6 +12,7 @@ export function useCodexSocket() {
   const {
     updateCurrentTurn,
     updateTurnItem,
+    updateTurnDiff,
     setLoading,
     expandReasoning,
     collapseReasoning,
@@ -75,6 +76,28 @@ export function useCodexSocket() {
           }));
         }
 
+        // File change output delta
+        if (
+          method === 'item/fileChange/outputDelta' &&
+          turnId &&
+          itemId
+        ) {
+          const delta = params.delta as string;
+          updateTurnItem(turnId, itemId, (existing) => ({
+            type: 'fileChange',
+            itemId,
+            content: (existing?.content ?? '') + delta,
+            completed: false,
+            filePath: existing?.filePath,
+          }));
+        }
+
+        // Turn-level unified diff updated
+        if (method === 'turn/diff/updated' && turnId) {
+          const diff = params.diff as string;
+          updateTurnDiff(turnId, diff);
+        }
+
         // Item started — create placeholder for tool calls
         if (method === 'item/started' && turnId) {
           const item = params.item as Record<string, unknown> | undefined;
@@ -92,6 +115,30 @@ export function useCodexSocket() {
               toolArgs: item.arguments
                 ? JSON.stringify(item.arguments, null, 2)
                 : '',
+            }));
+          }
+
+          if (item.type === 'fileChange') {
+            const changes = item.changes as
+              | Array<{ file?: string }>
+              | undefined;
+            const filePath = changes?.[0]?.file ?? '';
+            updateTurnItem(turnId, startedItemId, () => ({
+              type: 'fileChange',
+              itemId: startedItemId,
+              content: '',
+              completed: false,
+              filePath,
+            }));
+          }
+
+          if (item.type === 'commandExecution') {
+            updateTurnItem(turnId, startedItemId, () => ({
+              type: 'commandExecution',
+              itemId: startedItemId,
+              content: '',
+              completed: false,
+              command: (item.command as string) ?? '',
             }));
           }
         }
@@ -126,12 +173,17 @@ export function useCodexSocket() {
           }
 
           if (item.type === 'commandExecution') {
+            const cmd = (item.command as string) ?? '';
+            const output = (item.aggregatedOutput as string) ?? '';
             updateTurnItem(turnId, completedItemId, (existing) => ({
               ...(existing ?? {
                 type: 'commandExecution' as const,
                 itemId: completedItemId,
                 content: '',
               }),
+              content: output || existing?.content || '',
+              command: cmd || existing?.command,
+              exitCode: (item.exitCode as number) ?? existing?.exitCode,
               completed: true,
             }));
           }
@@ -151,6 +203,22 @@ export function useCodexSocket() {
               }),
               content: resultText,
               completed: true,
+            }));
+          }
+
+          if (item.type === 'fileChange') {
+            const changes = item.changes as
+              | Array<{ file?: string }>
+              | undefined;
+            const filePath = changes?.[0]?.file ?? '';
+            updateTurnItem(turnId, completedItemId, (existing) => ({
+              ...(existing ?? {
+                type: 'fileChange' as const,
+                itemId: completedItemId,
+              }),
+              content: existing?.content ?? '',
+              completed: true,
+              filePath: existing?.filePath ?? filePath,
             }));
           }
         }
@@ -175,6 +243,7 @@ export function useCodexSocket() {
     setConnected,
     updateCurrentTurn,
     updateTurnItem,
+    updateTurnDiff,
     setLoading,
     expandReasoning,
     collapseReasoning,
