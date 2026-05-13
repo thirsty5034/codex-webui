@@ -1,7 +1,7 @@
 /**
  * Chat message input with embedded send button and session panel toggle.
  */
-import { useCallback, useRef } from 'react';
+import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
 import { Send, Square, TerminalSquare } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -12,14 +12,24 @@ import { useTimelineStore } from '@/stores/timeline-store';
 import { SecurityPolicyBadge } from './security-policy-badge';
 import { TokenUsageRing } from './token-usage-ring';
 
+/** Imperative handle exposed via ref for external input manipulation. */
+export interface ChatInputHandle {
+  setInput: (value: string) => void;
+}
+
 interface Props {
-  value: string;
-  onChange: (value: string) => void;
   panelOpen: boolean;
   onTogglePanel: () => void;
 }
 
-export function ChatInput({ value, onChange, panelOpen, onTogglePanel }: Props) {
+export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput(
+  { panelOpen, onTogglePanel },
+  ref,
+) {
+  const [value, setValue] = useState('');
+  const onChange = setValue;
+
+  useImperativeHandle(ref, () => ({ setInput: setValue }), []);
   const { t } = useTranslation();
   const threadId = useTimelineStore((s) => s.threadId);
   const threadMode = useTimelineStore((s) => s.threadMode);
@@ -189,4 +199,4 @@ export function ChatInput({ value, onChange, panelOpen, onTogglePanel }: Props) 
       </div>
     </footer>
   );
-}
+});

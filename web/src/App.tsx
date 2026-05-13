@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { ChatHeader } from '@/components/chat/chat-header';
 import { ChatTimeline } from '@/components/chat/chat-timeline';
-import { ChatInput } from '@/components/chat/chat-input';
+import { ChatInput, type ChatInputHandle } from '@/components/chat/chat-input';
 import { ThreadSidebar } from '@/components/chat/thread-sidebar';
 import type { GlobalView } from '@/types/views';
 import { DiagnosticsPanel } from '@/components/diagnostics/diagnostics-panel';
@@ -22,7 +22,7 @@ import { resetSocket } from '@/socket';
 
 function App() {
   const [authenticated, setAuthenticated] = useState(false);
-  const [input, setInput] = useState('');
+  const chatInputRef = useRef<ChatInputHandle>(null);
   const [dark, setDark] = useState(() =>
     window.matchMedia('(prefers-color-scheme: dark)').matches,
   );
@@ -127,7 +127,7 @@ function App() {
 
           {globalView === 'chat' && (
             <>
-              <ChatTimeline onEditMessage={setInput} />
+              <ChatTimeline onEditMessage={(v) => chatInputRef.current?.setInput(v)} />
 
               {sessionPanelOpen && threadCwd && (
                 <div
@@ -143,8 +143,7 @@ function App() {
 
               {threadId && (
                 <ChatInput
-                  value={input}
-                  onChange={setInput}
+                  ref={chatInputRef}
                   panelOpen={sessionPanelOpen}
                   onTogglePanel={() => setSessionPanelOpen((o) => !o)}
                 />
