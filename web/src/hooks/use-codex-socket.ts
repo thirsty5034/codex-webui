@@ -73,14 +73,17 @@ export function useCodexSocket(enabled = true) {
 
     const socket = getSocket();
 
-    socket.on('connect', () => {
+    const handleConnect = () => {
       setConnected(true);
       const { threadId: activeId, threadMode: mode } = useTimelineStore.getState();
       if (activeId && mode === 'live') {
         socket.emit('thread.subscribe', { threadId: activeId });
       }
-    });
-    socket.on('disconnect', () => setConnected(false));
+    };
+    const handleDisconnect = () => setConnected(false);
+
+    socket.on('connect', handleConnect);
+    socket.on('disconnect', handleDisconnect);
 
     // Build context object for the notification dispatcher
     const ctx: NotificationContext = {
@@ -103,14 +106,16 @@ export function useCodexSocket(enabled = true) {
       resolveApprovalByRequestId,
     };
 
-    socket.on(
-      'codex.notification',
-      (notification: { method: string; params: Record<string, unknown> }) => {
-        handleNotification(notification.method, notification.params, ctx);
-      },
-    );
+    const handleCodexNotification = (notification: {
+      method: string;
+      params: Record<string, unknown>;
+    }) => {
+      handleNotification(notification.method, notification.params, ctx);
+    };
 
-    socket.on('codex.lifecycle', (event: CodexLifecycleEvent) => {
+    socket.on('codex.notification', handleCodexNotification);
+
+    const handleCodexLifecycle = (event: CodexLifecycleEvent) => {
       const activeThreadId = useTimelineStore.getState().threadId;
 
       if (event.type === 'appServerUnavailable') {
@@ -151,15 +156,15 @@ export function useCodexSocket(enabled = true) {
           .then(({ data }) => data && hydrateTurnDiffs(data.turns))
           .catch(() => undefined);
       }
-    });
+    };
 
-    socket.on(
-      'codex.serverRequest',
-      (request: {
-        id: number | string;
-        method: string;
-        params: Record<string, unknown>;
-      }) => {
+    socket.on('codex.lifecycle', handleCodexLifecycle);
+
+    const handleCodexServerRequest = (request: {
+      id: number | string;
+      method: string;
+      params: Record<string, unknown>;
+    }) => {
         const { id, method, params } = request;
         const reqThreadId = params.threadId as string;
         const turnId = params.turnId as string;
@@ -194,15 +199,16 @@ export function useCodexSocket(enabled = true) {
             grantRoot: (params.grantRoot as string) ?? null,
           });
         }
-      },
-    );
+    };
+
+    socket.on('codex.serverRequest', handleCodexServerRequest);
 
     return () => {
-      socket.off('connect');
-      socket.off('disconnect');
-      socket.off('codex.notification');
-      socket.off('codex.lifecycle');
-      socket.off('codex.serverRequest');
+      socket.off('connect', handleConnect);
+      socket.off('disconnect', handleDisconnect);
+      socket.off('codex.notification', handleCodexNotification);
+      socket.off('codex.lifecycle', handleCodexLifecycle);
+      socket.off('codex.serverRequest', handleCodexServerRequest);
     };
   }, [
     enabled,

@@ -97,7 +97,11 @@ export function ThreadView() {
 
       {sessionPanelOpen && threadCwd && (
         <div style={{ height: sessionPanelHeight }} className="shrink-0">
-          <SessionPanel cwd={threadCwd} onClose={() => setSessionPanelOpen(false)} />
+          <SessionPanel
+            threadId={threadId}
+            cwd={threadCwd}
+            onClose={() => setSessionPanelOpen(false)}
+          />
         </div>
       )}
 

@@ -1,17 +1,21 @@
 /**
- * Session-level bottom panel with file tree + tabbed terminal/file viewer.
+ * Session-level bottom panel with file tree + file tabs + shared terminal tabs.
  * Appears below the chat timeline.
  */
-import { useState, useCallback } from 'react';
-import { FileCode, Terminal, X } from 'lucide-react';
+import { useState, useCallback, useEffect } from 'react';
+import { FileCode, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { FileTree } from '@/components/files/file-tree';
 import { FileViewer } from '@/components/files/file-viewer';
-import { TerminalView } from '@/components/terminal/terminal-view';
+import { TerminalPane } from '@/components/terminal/terminal-pane';
+import { TerminalTabs } from '@/components/terminal/terminal-tabs';
+import { useTerminalSocketEvents } from '@/hooks/use-terminal-socket';
 import { useFilesStore } from '@/stores/files-store';
+import { useTerminalStore } from '@/stores/terminal-store';
 import { cn } from '@/lib/utils';
 
 interface Props {
+  threadId: string;
   cwd: string;
   onClose: () => void;
 }
@@ -21,21 +25,49 @@ interface FileTab {
   name: string;
 }
 
-export function SessionPanel({ cwd, onClose }: Props) {
+function terminalTabKey(terminalId: string): string {
+  return `terminal:${terminalId}`;
+}
+
+function terminalIdFromTab(tab: string): string | null {
+  return tab.startsWith('terminal:') ? tab.slice('terminal:'.length) : null;
+}
+
+export function SessionPanel({ threadId, cwd, onClose }: Props) {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<'terminal' | string>('terminal');
+  useTerminalSocketEvents();
+  const contextKey = `thread:${threadId}`;
+  const [activeTab, setActiveTab] = useState<string>('terminal');
   const [fileTabs, setFileTabs] = useState<FileTab[]>([]);
   const selectFile = useFilesStore((s) => s.selectFile);
+  const terminalContext = useTerminalStore((s) => s.contexts[contextKey]);
+  const ensureContext = useTerminalStore((s) => s.ensureContext);
+  const selectTerminal = useTerminalStore((s) => s.selectTerminal);
+
+  const terminalIds = terminalContext?.terminalIds ?? [];
+  const storeActiveTerminalId = terminalContext?.activeTerminalId ?? terminalIds[0] ?? null;
+
+  // Derive activeTerminalId: resolve generic 'terminal' tab to specific terminal id
+  const resolvedTab =
+    activeTab === 'terminal' && storeActiveTerminalId
+      ? terminalTabKey(storeActiveTerminalId)
+      : activeTab;
+  const activeTerminalId = terminalIdFromTab(resolvedTab) ?? storeActiveTerminalId;
+  const terminalVisible = resolvedTab === 'terminal' || terminalIdFromTab(resolvedTab) !== null;
+
+  useEffect(() => {
+    void ensureContext(contextKey, cwd, true);
+  }, [contextKey, cwd, ensureContext]);
 
   const handleFileClick = useCallback(
-    async (filePath: string) => {
+    (filePath: string) => {
       const name = filePath.split('/').pop() ?? filePath;
       setFileTabs((prev) => {
         if (prev.some((t) => t.path === filePath)) return prev;
         return [...prev, { path: filePath, name }];
       });
       setActiveTab(filePath);
-      await selectFile(filePath);
+      selectFile(filePath);
     },
     [selectFile],
   );
@@ -45,44 +77,45 @@ export function SessionPanel({ cwd, onClose }: Props) {
       setFileTabs((prev) => {
         const next = prev.filter((t) => t.path !== path);
         if (activeTab === path) {
-          // Switch to the tab on the left, or terminal if none left
           const closedIdx = prev.findIndex((t) => t.path === path);
           const leftTab = prev[closedIdx - 1];
-          setActiveTab(leftTab ? leftTab.path : next.length > 0 ? next[0].path : 'terminal');
+          setActiveTab(
+            leftTab
+              ? leftTab.path
+              : activeTerminalId
+                ? terminalTabKey(activeTerminalId)
+                : next[0]?.path ?? 'terminal',
+          );
         }
         return next;
       });
     },
-    [activeTab],
+    [activeTab, activeTerminalId],
   );
+
+  const handleSelectTerminal = (terminalId: string) => {
+    selectTerminal(contextKey, terminalId);
+    setActiveTab(terminalTabKey(terminalId));
+  };
 
   return (
     <div className="flex h-full border-t border-border bg-background">
-      {/* File tree — fixed width */}
-      <div className="flex w-52 shrink-0 flex-col border-r border-border overflow-hidden">
+      <div className="flex w-52 shrink-0 flex-col overflow-hidden border-r border-border">
         <div className="shrink-0 border-b border-border px-3 py-1.5 text-xs font-medium text-muted-foreground">
           {t('Explorer')}
         </div>
         <FileTree onFileClick={handleFileClick} />
       </div>
 
-      {/* Tabbed right area */}
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Tab bar */}
         <div className="flex shrink-0 items-center border-b border-border bg-muted/20">
-          <button
-            type="button"
-            onClick={() => setActiveTab('terminal')}
-            className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 text-xs transition-colors',
-              activeTab === 'terminal'
-                ? 'border-b-2 border-primary text-foreground'
-                : 'text-muted-foreground hover:text-foreground',
-            )}
-          >
-            <Terminal className="h-3 w-3" />
-            {t('Terminal')}
-          </button>
+          <TerminalTabs
+            contextKey={contextKey}
+            cwd={cwd}
+            activeTerminalId={activeTerminalId}
+            onSelectTerminal={handleSelectTerminal}
+            className="min-w-0 flex-1"
+          />
 
           {fileTabs.map((tab) => (
             <button
@@ -90,7 +123,7 @@ export function SessionPanel({ cwd, onClose }: Props) {
               type="button"
               onClick={() => {
                 setActiveTab(tab.path);
-                selectFile(tab.path);
+                void selectFile(tab.path);
               }}
               className={cn(
                 'group flex items-center gap-1.5 px-3 py-1.5 text-xs transition-colors',
@@ -121,20 +154,34 @@ export function SessionPanel({ cwd, onClose }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="ml-auto px-2 py-1.5 text-muted-foreground hover:text-foreground"
+            className="px-2 py-1.5 text-muted-foreground hover:text-foreground"
             title={t('Close panel')}
           >
             <X className="h-3.5 w-3.5" />
           </button>
         </div>
 
-        {/* Tab content */}
-        <div className="min-h-0 flex-1">
-          {activeTab === 'terminal' ? (
-            <TerminalView cwd={cwd} />
-          ) : (
-            <FileViewer />
-          )}
+        <div className="relative min-h-0 flex-1">
+          <div className={cn('absolute inset-0', !terminalVisible && 'hidden')}>
+            {terminalIds.length === 0 && (
+              <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                {t('No terminals')}
+              </div>
+            )}
+            {terminalIds.map((terminalId) => (
+              <TerminalPane
+                key={terminalId}
+                contextKey={contextKey}
+                terminalId={terminalId}
+                active={
+                  terminalVisible &&
+                  terminalId === activeTerminalId
+                }
+                className="absolute inset-0"
+              />
+            ))}
+          </div>
+          {!terminalVisible && <FileViewer />}
         </div>
       </div>
     </div>
