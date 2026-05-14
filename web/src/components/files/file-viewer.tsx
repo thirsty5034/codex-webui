@@ -5,7 +5,7 @@
 import { useCallback, useRef, useEffect } from 'react';
 import Editor, { type OnMount } from '@monaco-editor/react';
 import { Loader2, Save } from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
@@ -28,11 +28,13 @@ export function FileViewer() {
   const { data: fileData, isLoading } = useQuery({
     ...filesReadFileOptions({ query: { path: selectedFile! } }),
     enabled: !!selectedFile,
+    placeholderData: keepPreviousData,
   });
 
   const { data: metadata } = useQuery({
     ...filesGetMetadataOptions({ query: { path: selectedFile! } }),
     enabled: !!selectedFile,
+    placeholderData: keepPreviousData,
   });
 
   // Track mtime for conflict detection
@@ -108,7 +110,7 @@ export function FileViewer() {
 
       <div className="relative min-h-0 flex-1">
         <Editor
-          key={selectedFile}
+          path={selectedFile ?? undefined}
           value={fileData?.content ?? ''}
           language={language}
           theme="vs-dark"

@@ -88,7 +88,10 @@ export function SessionPanel({ cwd, onClose }: Props) {
             <button
               key={tab.path}
               type="button"
-              onClick={() => setActiveTab(tab.path)}
+              onClick={() => {
+                setActiveTab(tab.path);
+                selectFile(tab.path);
+              }}
               className={cn(
                 'group flex items-center gap-1.5 px-3 py-1.5 text-xs transition-colors',
                 activeTab === tab.path
