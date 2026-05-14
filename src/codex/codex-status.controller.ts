@@ -81,7 +81,7 @@ export class CodexStatusController {
   @ApiBadRequestResponse({ type: ApiErrorResponseDto })
   @ApiNoContentResponse()
   async updateApprovalPolicy(
-    @Body() body: UpdateApprovalPolicyDto | undefined,
+    @Body() body: UpdateApprovalPolicyDto,
   ): Promise<void> {
     const value =
       typeof body?.approvalPolicy === 'string' ? body.approvalPolicy : null;
@@ -110,9 +110,7 @@ export class CodexStatusController {
   @ApiOperation({ summary: 'Update sandbox mode (hot-reloads all threads)' })
   @ApiBadRequestResponse({ type: ApiErrorResponseDto })
   @ApiNoContentResponse()
-  async updateSandboxMode(
-    @Body() body: UpdateSandboxModeDto | undefined,
-  ): Promise<void> {
+  async updateSandboxMode(@Body() body: UpdateSandboxModeDto): Promise<void> {
     const value =
       typeof body?.sandboxMode === 'string' ? body.sandboxMode : null;
     if (!value || !(SANDBOX_MODE_VALUES as readonly string[]).includes(value)) {

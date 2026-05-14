@@ -56,19 +56,27 @@ export const codexStatusGetStatus = <ThrowOnError extends boolean = false>(optio
 /**
  * Update approval policy (hot-reloads all threads)
  */
-export const codexStatusUpdateApprovalPolicy = <ThrowOnError extends boolean = false>(options?: Options<CodexStatusUpdateApprovalPolicyData, ThrowOnError>) => (options?.client ?? client).post<CodexStatusUpdateApprovalPolicyResponses, CodexStatusUpdateApprovalPolicyErrors, ThrowOnError>({
+export const codexStatusUpdateApprovalPolicy = <ThrowOnError extends boolean = false>(options: Options<CodexStatusUpdateApprovalPolicyData, ThrowOnError>) => (options.client ?? client).post<CodexStatusUpdateApprovalPolicyResponses, CodexStatusUpdateApprovalPolicyErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/codex/approval-policy',
-    ...options
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
 });
 
 /**
  * Update sandbox mode (hot-reloads all threads)
  */
-export const codexStatusUpdateSandboxMode = <ThrowOnError extends boolean = false>(options?: Options<CodexStatusUpdateSandboxModeData, ThrowOnError>) => (options?.client ?? client).post<CodexStatusUpdateSandboxModeResponses, CodexStatusUpdateSandboxModeErrors, ThrowOnError>({
+export const codexStatusUpdateSandboxMode = <ThrowOnError extends boolean = false>(options: Options<CodexStatusUpdateSandboxModeData, ThrowOnError>) => (options.client ?? client).post<CodexStatusUpdateSandboxModeResponses, CodexStatusUpdateSandboxModeErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/codex/sandbox-mode',
-    ...options
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
 });
 
 /**

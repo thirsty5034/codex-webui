@@ -4,7 +4,8 @@
  * state, queries, mutations, and view routing.
  */
 import { useMemo, useState } from 'react';
-import { FolderOpen, Plus, Terminal } from 'lucide-react';
+import { FolderOpen, Plus, Settings, Terminal } from 'lucide-react';
+import { useNavigate, useRouterState } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -27,7 +28,6 @@ import type { ThreadDto } from '@/generated/api';
 import { useTimelineStore } from '@/stores/timeline-store';
 import { showSnackbar } from '@/stores/snackbar-store';
 import { cn } from '@/lib/utils';
-import type { GlobalView } from '@/types/views';
 import type { ConfirmAction, SidebarView } from './sidebar/sidebar-types';
 import { threadLabel, groupByWorkspace } from './sidebar/sidebar-types';
 import { ThreadRow } from './sidebar/thread-row';
@@ -36,12 +36,20 @@ import { WorkspaceDetail } from './sidebar/workspace-detail';
 import { RenameDialog, ConfirmDialog } from './sidebar/sidebar-dialogs';
 import { DirectoryPickerDialog } from './sidebar/directory-picker-dialog';
 
-interface Props {
-  activeView: GlobalView;
-  onViewChange: (view: GlobalView) => void;
+/** Derives the active "view" from the current route path. */
+function useActiveView(): 'chat' | 'files' | 'terminal' | 'diagnostics' | 'settings' | 'other' {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  if (pathname.startsWith('/files')) return 'files';
+  if (pathname.startsWith('/terminal')) return 'terminal';
+  if (pathname.startsWith('/diagnostics')) return 'diagnostics';
+  if (pathname.startsWith('/settings')) return 'settings';
+  if (pathname === '/' || pathname.startsWith('/t/')) return 'chat';
+  return 'other';
 }
 
-export function ThreadSidebar({ activeView, onViewChange }: Props) {
+export function ThreadSidebar() {
+  const navigate = useNavigate();
+  const activeView = useActiveView();
   const { t } = useTranslation();
   const threadId = useTimelineStore((s) => s.threadId);
   const threadMode = useTimelineStore((s) => s.threadMode);
@@ -132,7 +140,7 @@ export function ThreadSidebar({ activeView, onViewChange }: Props) {
       void turnDiffReadThreadTurnDiffs({ path: { threadId: tid } })
         .then(({ data }) => data && hydrateTurnDiffs(data.turns))
         .catch(() => undefined);
-      onViewChange('chat');
+      void navigate({ to: '/t/$threadId', params: { threadId: thread.id } });
     } catch {
       setLoading(false);
       showSnackbar(t('Cannot read archived thread. Try unarchive or fork.'), 'warning');
@@ -144,7 +152,7 @@ export function ThreadSidebar({ activeView, onViewChange }: Props) {
     setActiveThread(thread.id, thread.cwd, threadLabel(thread));
     setLoading(true);
     resumeThread.mutate({ path: { threadId: thread.id } });
-    onViewChange('chat');
+    void navigate({ to: '/t/$threadId', params: { threadId: thread.id } });
   };
 
   const switchAfterArchive = (archivedId: string) => {
@@ -155,7 +163,7 @@ export function ThreadSidebar({ activeView, onViewChange }: Props) {
       activeThreads.slice(idx + 1).find((th) => th.id !== archivedId) ??
       activeThreads.slice(0, idx).find((th) => th.id !== archivedId);
     if (next) openLiveThread(next);
-    else clearThread();
+    else { clearThread(); void navigate({ to: '/' }); }
   };
 
   // ── Mutations ───────────────────────────────────────────────────────
@@ -164,6 +172,7 @@ export function ThreadSidebar({ activeView, onViewChange }: Props) {
     onSuccess: (res) => {
       setActiveThread(res.thread.id, res.cwd, threadLabel(res.thread));
       invalidateThreads();
+      void navigate({ to: '/t/$threadId', params: { threadId: res.thread.id } });
     },
     onError: (err) => addSystemError(String(err.message)),
   });
@@ -199,7 +208,7 @@ export function ThreadSidebar({ activeView, onViewChange }: Props) {
         .then(({ data }) => data && hydrateTurnDiffs(data.turns))
         .catch(() => undefined);
       invalidateThreads();
-      onViewChange('chat');
+      void navigate({ to: '/t/$threadId', params: { threadId: tid } });
     },
   });
 
@@ -276,7 +285,7 @@ export function ThreadSidebar({ activeView, onViewChange }: Props) {
       <div className="space-y-0.5 px-2 py-2">
         <button
           type="button"
-          onClick={() => onViewChange('files')}
+          onClick={() => void navigate({ to: '/files' })}
           className={cn(
             'flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors',
             activeView === 'files'
@@ -289,7 +298,7 @@ export function ThreadSidebar({ activeView, onViewChange }: Props) {
         </button>
         <button
           type="button"
-          onClick={() => onViewChange('terminal')}
+          onClick={() => void navigate({ to: '/terminal' })}
           className={cn(
             'flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors',
             activeView === 'terminal'
@@ -299,6 +308,19 @@ export function ThreadSidebar({ activeView, onViewChange }: Props) {
         >
           <Terminal className="h-4 w-4 shrink-0" />
           {t('Terminal')}
+        </button>
+        <button
+          type="button"
+          onClick={() => void navigate({ to: '/settings' })}
+          className={cn(
+            'flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors',
+            activeView === 'settings'
+              ? 'bg-accent text-accent-foreground'
+              : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
+          )}
+        >
+          <Settings className="h-4 w-4 shrink-0" />
+          {t('Settings')}
         </button>
       </div>
 
@@ -329,7 +351,7 @@ export function ThreadSidebar({ activeView, onViewChange }: Props) {
             onToggleCollapse={toggleCollapse}
             onOpenArchivedDetail={openArchivedDetail}
             onOpenWorkspaceDetail={openWorkspaceDetail}
-            onCreateInWorkspace={(cwd) => { createThread.mutate({ body: { cwd } }); onViewChange('chat'); }}
+            onCreateInWorkspace={(cwd) => createThread.mutate({ body: { cwd } })}
             renderThreadRow={renderThreadRow}
           />
         ) : (
@@ -364,7 +386,7 @@ export function ThreadSidebar({ activeView, onViewChange }: Props) {
       <DirectoryPickerDialog
         open={dirPickerOpen}
         onClose={() => setDirPickerOpen(false)}
-        onSelect={(cwd) => { createThread.mutate({ body: { cwd } }); onViewChange('chat'); }}
+        onSelect={(cwd) => createThread.mutate({ body: { cwd } })}
       />
     </aside>
   );

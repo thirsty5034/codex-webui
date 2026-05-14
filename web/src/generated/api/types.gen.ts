@@ -83,9 +83,6 @@ export type CodexModelsStatusDto = {
     listable: boolean;
     defaultModel: string | null;
     count: number;
-    data?: number | string | boolean | Array<unknown> | {
-        [key: string]: unknown;
-    } | null;
     error?: CodexStatusErrorDto;
 };
 
@@ -104,6 +101,14 @@ export type CodexStatusResponseDto = {
     provider: CodexProviderStatusDto;
     models: CodexModelsStatusDto;
     runtime: CodexRuntimeStatusDto;
+};
+
+export type UpdateApprovalPolicyDto = {
+    approvalPolicy: 'untrusted' | 'on-failure' | 'on-request' | 'never';
+};
+
+export type UpdateSandboxModeDto = {
+    sandboxMode: 'read-only' | 'workspace-write' | 'danger-full-access';
 };
 
 export type FileEntryDto = {
@@ -702,6 +707,14 @@ export type TextTurnInputDto = {
 
 export type StartTurnDto = {
     input: Array<TextTurnInputDto>;
+    /**
+     * Override model for this turn and subsequent turns.
+     */
+    model?: string;
+    /**
+     * Override reasoning effort for this turn and subsequent turns.
+     */
+    effort?: 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
 };
 
 export type SteerTurnDto = {
@@ -857,7 +870,7 @@ export type CodexStatusGetStatusResponses = {
 export type CodexStatusGetStatusResponse = CodexStatusGetStatusResponses[keyof CodexStatusGetStatusResponses];
 
 export type CodexStatusUpdateApprovalPolicyData = {
-    body?: never;
+    body: UpdateApprovalPolicyDto;
     path?: never;
     query?: never;
     url: '/api/codex/approval-policy';
@@ -877,7 +890,7 @@ export type CodexStatusUpdateApprovalPolicyResponses = {
 export type CodexStatusUpdateApprovalPolicyResponse = CodexStatusUpdateApprovalPolicyResponses[keyof CodexStatusUpdateApprovalPolicyResponses];
 
 export type CodexStatusUpdateSandboxModeData = {
-    body?: never;
+    body: UpdateSandboxModeDto;
     path?: never;
     query?: never;
     url: '/api/codex/sandbox-mode';

@@ -71,6 +71,9 @@ const PINO_REDACT = {
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'public'),
       exclude: ['/api/(.*)'],
+      serveStaticOptions: {
+        fallthrough: true,
+      },
     }),
     AuthModule,
     DatabaseModule,

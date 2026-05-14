@@ -103,7 +103,7 @@ export class CodexProviderStatusDto {
   error?: CodexStatusErrorDto;
 }
 
-/** model/list probe result and summarized default model information. */
+/** model/list probe summary — full list available via GET /api/models. */
 export class CodexModelsStatusDto {
   @ApiProperty()
   ok!: boolean;
@@ -116,9 +116,6 @@ export class CodexModelsStatusDto {
 
   @ApiProperty()
   count!: number;
-
-  @ApiPropertyOptional(jsonValueSchema(true))
-  data?: unknown;
 
   @ApiPropertyOptional({ type: () => CodexStatusErrorDto })
   error?: CodexStatusErrorDto;

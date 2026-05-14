@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Activity, Check, Edit3, Globe, Moon, Sun, X } from 'lucide-react';
+import { Activity, Check, Edit3, Globe, Moon, Settings, Sun, X } from 'lucide-react';
+import { useNavigate, useRouterState } from '@tanstack/react-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -26,6 +27,7 @@ interface Props {
 
 export function ChatHeader({ dark, onToggleDark, onToggleDiagnostics }: Props) {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   const connected = useConnectionStore((s) => s.connected);
   const threadId = useTimelineStore((s) => s.threadId);
   const threadTitle = useTimelineStore((s) => s.threadTitle);
@@ -34,6 +36,10 @@ export function ChatHeader({ dark, onToggleDark, onToggleDiagnostics }: Props) {
   const [editing, setEditing] = useState(false);
   const [draftName, setDraftName] = useState('');
   const queryClient = useQueryClient();
+
+  const isDiagnostics = useRouterState({
+    select: (s) => s.location.pathname.startsWith('/diagnostics'),
+  });
 
   const renameThread = useMutation({
     ...threadsSetThreadNameMutation(),
@@ -59,6 +65,18 @@ export function ChatHeader({ dark, onToggleDark, onToggleDiagnostics }: Props) {
     const name = draftName.trim();
     if (!name) return;
     renameThread.mutate({ path: { threadId }, body: { name } });
+  };
+
+  const handleDiagnosticsToggle = () => {
+    if (isDiagnostics) {
+      if (threadId) {
+        void navigate({ to: '/t/$threadId', params: { threadId } });
+      } else {
+        void navigate({ to: '/' });
+      }
+    } else {
+      onToggleDiagnostics();
+    }
   };
 
   return (
@@ -131,12 +149,26 @@ export function ChatHeader({ dark, onToggleDark, onToggleDiagnostics }: Props) {
               size="icon"
               variant="ghost"
               className="h-8 w-8"
-              onClick={onToggleDiagnostics}
+              onClick={handleDiagnosticsToggle}
             >
               <Activity className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>{t('Diagnostics')}</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8"
+              onClick={() => void navigate({ to: '/settings' })}
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{t('Settings')}</TooltipContent>
         </Tooltip>
 
         <Tooltip>

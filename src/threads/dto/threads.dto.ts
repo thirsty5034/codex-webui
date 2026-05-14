@@ -26,6 +26,18 @@ export class TextTurnInputDto {
 export class StartTurnDto {
   @ApiProperty({ type: () => [TextTurnInputDto], minItems: 1 })
   input!: TextTurnInputDto[];
+
+  @ApiPropertyOptional({
+    description: 'Override model for this turn and subsequent turns.',
+  })
+  model?: string;
+
+  @ApiPropertyOptional({
+    enum: ['none', 'minimal', 'low', 'medium', 'high', 'xhigh'],
+    description:
+      'Override reasoning effort for this turn and subsequent turns.',
+  })
+  effort?: 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
 }
 
 /** Request body for steering the current active turn. */

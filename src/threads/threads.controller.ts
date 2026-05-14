@@ -30,6 +30,7 @@ import {
   OkResponseDto,
 } from '../common/dto/api-responses.dto';
 import type { v2 } from '../codex/codex-schema';
+import { REASONING_EFFORT_VALUES } from '../codex/dto/v2/openapi.schema';
 import { ThreadsService } from './threads.service';
 import {
   CODEX_V2_EXTRA_MODELS,
@@ -147,9 +148,25 @@ export class ThreadsController {
     if (!Array.isArray(body.input) || body.input.length === 0) {
       throw new BadRequestException('input must be a non-empty array');
     }
+    const model = typeof body.model === 'string' ? body.model.trim() : null;
+    if (body.model !== undefined && !model) {
+      throw new BadRequestException('model must be a non-empty string');
+    }
+    const effort = typeof body.effort === 'string' ? body.effort : null;
+    if (body.effort !== undefined && !effort) {
+      throw new BadRequestException('Invalid reasoning effort');
+    }
+    if (
+      effort &&
+      !(REASONING_EFFORT_VALUES as readonly string[]).includes(effort)
+    ) {
+      throw new BadRequestException('Invalid reasoning effort');
+    }
     return this.threadsService.startTurn({
       threadId,
       input: body.input as never,
+      ...(model && { model }),
+      ...(effort && { effort }),
     });
   }
 

@@ -84,7 +84,6 @@ export interface CodexModelsStatus {
   listable: boolean;
   defaultModel: string | null;
   count: number;
-  data?: JsonSafeValue;
   error?: CodexStatusError;
 }
 
@@ -322,12 +321,12 @@ export class CodexStatusService {
       };
     }
 
+    const count = modelsProbe.data.data.length;
     return {
       ok: true,
-      listable: true,
+      listable: count > 0,
       defaultModel: this.findDefaultModel(modelsProbe.data, configProbe),
-      count: modelsProbe.data.data.length,
-      data: this.toJsonSafe(modelsProbe.data),
+      count,
     };
   }
 

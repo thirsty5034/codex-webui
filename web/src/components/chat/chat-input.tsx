@@ -9,7 +9,9 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { threadsInterruptTurnMutation, threadsStartTurnMutation, threadsSteerTurnMutation } from '@/generated/api/@tanstack/react-query.gen';
 import { useTimelineStore } from '@/stores/timeline-store';
+import { useModelStore } from '@/stores/model-store';
 import { SecurityPolicyBadge } from './security-policy-badge';
+import { ModelSelector } from './model-selector';
 import { TokenUsageRing } from './token-usage-ring';
 
 /** Imperative handle exposed via ref for external input manipulation. */
@@ -72,9 +74,14 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput(
     const text = value.trim();
     addUserMessage(text);
     onChange('');
+    const { modelOverride, effortOverride } = useModelStore.getState();
     startTurn.mutate({
       path: { threadId },
-      body: { input: [{ type: 'text' as const, text }] },
+      body: {
+        input: [{ type: 'text' as const, text }],
+        ...(modelOverride && { model: modelOverride }),
+        ...(effortOverride && { effort: effortOverride }),
+      },
     });
   }, [value, onChange, threadId, loading, readOnly, addUserMessage, startTurn]);
 
@@ -146,6 +153,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput(
         />
         <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
           <div className="flex items-center gap-1">
+            <ModelSelector />
             <SecurityPolicyBadge />
             <Button
               size="sm"
