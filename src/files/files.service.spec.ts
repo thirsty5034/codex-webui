@@ -9,7 +9,12 @@ import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { Readable } from 'node:stream';
-import { SECURITY_SETTING_KEYS } from '../settings/settings.definitions';
+import {
+  DEFAULT_EXCLUDED_DIRS,
+  FILES_SETTING_KEYS,
+  SECURITY_SETTING_KEYS,
+} from '../settings/settings.definitions';
+import type { ResolvedSetting } from '../settings/settings.service';
 import { SettingsService } from '../settings/settings.service';
 import { FilesService, type FileUploadInput } from './files.service';
 
@@ -43,6 +48,22 @@ describe('FilesService', () => {
           useValue: {
             getStringSetting: (key: string) =>
               key === SECURITY_SETTING_KEYS.workspaceRoots ? tmpDir : null,
+            getSetting: (key: string): ResolvedSetting => {
+              if (key === FILES_SETTING_KEYS.excludedDirs) {
+                return {
+                  key,
+                  value: DEFAULT_EXCLUDED_DIRS,
+                  source: 'default',
+                  type: 'string',
+                  category: 'files',
+                  description: '',
+                  defaultValue: DEFAULT_EXCLUDED_DIRS,
+                  constraints: {},
+                  updatedAt: 0,
+                };
+              }
+              throw new Error(`Unexpected getSetting key: ${key}`);
+            },
             onChange: () => () => {},
           } satisfies Partial<SettingsService>,
         },

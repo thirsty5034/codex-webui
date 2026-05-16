@@ -1,6 +1,6 @@
 /** Shared terminal tab strip controls for global and thread terminals. */
 import { useState } from 'react';
-import { Download, Edit3, Plus, Terminal as TerminalIcon, Users, X } from 'lucide-react';
+import { Plus, Terminal as TerminalIcon, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
   AlertDialog,
@@ -38,11 +38,8 @@ export function TerminalTabs({
   const terminals = useTerminalStore((s) => s.terminals);
   const createTerminal = useTerminalStore((s) => s.createTerminal);
   const closeTerminal = useTerminalStore((s) => s.closeTerminal);
-  const renameTerminal = useTerminalStore((s) => s.renameTerminal);
-  const downloadTerminal = useTerminalStore((s) => s.downloadTerminal);
 
   const terminalIds = context?.terminalIds ?? [];
-  const activeTerminal = activeTerminalId ? terminals[activeTerminalId] : null;
 
   const handleCreate = async () => {
     const terminal = await createTerminal(contextKey, cwd);
@@ -55,12 +52,6 @@ export function TerminalTabs({
       return;
     }
     void closeTerminal(contextKey, terminal.id);
-  };
-
-  const handleRename = async () => {
-    if (!activeTerminal) return;
-    const title = window.prompt(t('Rename terminal'), activeTerminal.title)?.trim();
-    if (title) await renameTerminal(contextKey, activeTerminal.id, title);
   };
 
   return (
@@ -123,36 +114,6 @@ export function TerminalTabs({
         >
           <Plus />
         </Button>
-
-        {activeTerminal && (
-          <div className="ml-auto flex shrink-0 items-center gap-1 pr-1 text-xs text-muted-foreground">
-            <span className="hidden max-w-72 truncate md:inline" title={activeTerminal.cwd}>
-              {activeTerminal.shell} · {activeTerminal.cwd}
-            </span>
-            <span className="inline-flex items-center gap-1" title={t('Attached clients')}>
-              <Users className="h-3 w-3" />
-              {activeTerminal.attachedCount}
-            </span>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-xs"
-              onClick={() => void handleRename()}
-              title={t('Rename terminal')}
-            >
-              <Edit3 />
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-xs"
-              onClick={() => void downloadTerminal(contextKey, activeTerminal.id)}
-              title={t('Download terminal output')}
-            >
-              <Download />
-            </Button>
-          </div>
-        )}
       </div>
 
       <AlertDialog open={pendingClose !== null} onOpenChange={(open) => !open && setPendingClose(null)}>

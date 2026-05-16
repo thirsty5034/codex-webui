@@ -49,6 +49,7 @@ export const TERMINAL_SETTING_KEYS = {
 
 export const FILES_SETTING_KEYS = {
   uploadMaxBytes: 'files.uploadMaxBytes',
+  excludedDirs: 'files.excludedDirs',
 } as const;
 
 export const SECURITY_SETTING_KEYS = {
@@ -62,6 +63,10 @@ export const TERMINAL_SETTING_DEFAULTS = {
 } as const;
 
 const DEFAULT_UPLOAD_MAX_BYTES = 104_857_600; // 100 MB
+
+/** Default directories excluded from file tree listings. */
+export const DEFAULT_EXCLUDED_DIRS =
+  'node_modules,.git,.next,dist,__pycache__,.DS_Store';
 
 /**
  * Authoritative list of all runtime settings.
@@ -118,6 +123,14 @@ export const SETTINGS_DEFINITIONS = [
     constraints: { min: 1, max: 10_737_418_240, integer: true },
   },
   {
+    key: FILES_SETTING_KEYS.excludedDirs,
+    type: 'string',
+    category: 'files',
+    description:
+      'Comma-separated directory/file names excluded from file tree listings.',
+    defaultValue: DEFAULT_EXCLUDED_DIRS,
+  },
+  {
     key: SECURITY_SETTING_KEYS.workspaceRoots,
     type: 'string',
     category: 'security',
@@ -141,9 +154,13 @@ export function isTerminalSettingKey(key: string): boolean {
   return TERMINAL_SETTING_KEY_SET.has(key);
 }
 
+const FILES_SETTING_KEY_SET = new Set<string>(
+  Object.values(FILES_SETTING_KEYS),
+);
+
 /** Returns true when a changed setting affects file service config. */
 export function isFilesSettingKey(key: string): boolean {
-  return key === FILES_SETTING_KEYS.uploadMaxBytes;
+  return FILES_SETTING_KEY_SET.has(key);
 }
 
 /** Returns true when a changed setting affects workspace roots. */

@@ -13,6 +13,9 @@ import {
   OnModuleDestroy,
 } from '@nestjs/common';
 import {
+  DEFAULT_EXCLUDED_DIRS as DEFAULT_EXCLUDED_DIRS_STR,
+  FILES_SETTING_KEYS,
+  isFilesSettingKey,
   isSecuritySettingKey,
   SECURITY_SETTING_KEYS,
 } from '../settings/settings.definitions';
@@ -31,15 +34,12 @@ const MAX_READ_SIZE = 5 * 1024 * 1024;
 /** Prefix used for upload temp files written next to their final target. */
 const UPLOAD_TEMP_PREFIX = '.codex-upload-';
 
-/** Directories always excluded from tree listings. */
-const EXCLUDED_DIRS = new Set([
-  'node_modules',
-  '.git',
-  '.next',
-  'dist',
-  '__pycache__',
-  '.DS_Store',
-]);
+/** Parsed fallback excluded dirs derived from the settings default. */
+const DEFAULT_EXCLUDED_DIRS = new Set(
+  DEFAULT_EXCLUDED_DIRS_STR.split(',')
+    .map((s) => s.trim())
+    .filter(Boolean),
+);
 
 export interface FileEntry {
   name: string;
@@ -109,14 +109,22 @@ export class FilesService implements OnModuleDestroy {
   private readonly dynamicRoots = new Set<string>();
   /** Union of configured roots (from setting/env) + dynamicRoots + home. */
   private workspaceRoots = new Set<string>();
+  /** Directory/file names excluded from tree listings, configurable via settings. */
+  private excludedDirs = DEFAULT_EXCLUDED_DIRS;
   private unregisterSettingsChange: (() => void) | null = null;
 
   constructor(private readonly settingsService: SettingsService) {
     this.rebuildWorkspaceRoots();
+    this.rebuildExcludedDirs();
     this.unregisterSettingsChange = this.settingsService.onChange((event) => {
-      if (!isSecuritySettingKey(event.key)) return;
-      this.rebuildWorkspaceRoots();
-      this.logger.log('Workspace roots updated from runtime settings');
+      if (isSecuritySettingKey(event.key)) {
+        this.rebuildWorkspaceRoots();
+        this.logger.log('Workspace roots updated from runtime settings');
+      }
+      if (isFilesSettingKey(event.key)) {
+        this.rebuildExcludedDirs();
+        this.logger.log('Excluded dirs updated from runtime settings');
+      }
     });
   }
 
@@ -162,6 +170,25 @@ export class FilesService implements OnModuleDestroy {
 
     // Merge configured + surviving dynamic
     this.workspaceRoots = new Set([...next, ...this.dynamicRoots]);
+  }
+
+  /** Rebuilds the excluded dirs set from the runtime setting. */
+  private rebuildExcludedDirs(): void {
+    const setting = this.settingsService.getSetting(
+      FILES_SETTING_KEYS.excludedDirs,
+    );
+    const raw = setting.value;
+    // null/reset → default; empty string → no exclusions; non-empty → parse
+    if (typeof raw !== 'string') {
+      this.excludedDirs = DEFAULT_EXCLUDED_DIRS;
+      return;
+    }
+    this.excludedDirs = new Set(
+      raw
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean),
+    );
   }
 
   /**
@@ -286,8 +313,7 @@ export class FilesService implements OnModuleDestroy {
     const result: FileEntry[] = [];
 
     for (const entry of entries) {
-      if (EXCLUDED_DIRS.has(entry.name)) continue;
-      if (entry.name.startsWith('.') && entry.name !== '.env') continue;
+      if (this.excludedDirs.has(entry.name)) continue;
 
       const entryPath = path.join(resolved, entry.name);
       const isDir = entry.isDirectory();

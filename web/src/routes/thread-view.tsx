@@ -9,6 +9,11 @@ import { useTranslation } from 'react-i18next';
 import { ChatTimeline } from '@/components/chat/chat-timeline';
 import { ChatInput, type ChatInputHandle } from '@/components/chat/chat-input';
 import { SessionPanel } from '@/components/chat/session-panel';
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from '@/components/ui/resizable';
 import { useTimelineStore } from '@/stores/timeline-store';
 import { showSnackbar } from '@/stores/snackbar-store';
 import {
@@ -29,7 +34,6 @@ export function ThreadView() {
   const queryClient = useQueryClient();
   const chatInputRef = useRef<ChatInputHandle>(null);
   const [sessionPanelOpen, setSessionPanelOpen] = useState(false);
-  const sessionPanelHeight = 300;
 
   const threadCwd = useTimelineStore((s) => s.threadCwd);
   const setActiveThread = useTimelineStore((s) => s.setActiveThread);
@@ -108,18 +112,30 @@ export function ThreadView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [threadId]);
 
+  const showPanel = sessionPanelOpen && !!threadCwd;
+
   return (
     <>
-      <ChatTimeline onEditMessage={(v) => chatInputRef.current?.setInput(v)} />
-
-      {sessionPanelOpen && threadCwd && (
-        <div style={{ height: sessionPanelHeight }} className="shrink-0">
-          <SessionPanel
-            threadId={threadId}
-            cwd={threadCwd}
-            onClose={() => setSessionPanelOpen(false)}
-          />
-        </div>
+      {showPanel ? (
+        <ResizablePanelGroup orientation="vertical" className="min-h-0 flex-1">
+          <ResizablePanel defaultSize="65%" minSize="20%">
+            <div className="flex h-full flex-col">
+              <ChatTimeline onEditMessage={(v) => chatInputRef.current?.setInput(v)} />
+            </div>
+          </ResizablePanel>
+          <ResizableHandle withHandle />
+          <ResizablePanel defaultSize="35%" minSize="15%">
+            <div className="flex h-full flex-col">
+              <SessionPanel
+                threadId={threadId}
+                cwd={threadCwd!}
+                onClose={() => setSessionPanelOpen(false)}
+              />
+            </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      ) : (
+        <ChatTimeline onEditMessage={(v) => chatInputRef.current?.setInput(v)} />
       )}
 
       <ChatInput

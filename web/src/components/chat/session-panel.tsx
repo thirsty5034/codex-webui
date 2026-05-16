@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { FileTree } from '@/components/files/file-tree';
 import { FileViewer } from '@/components/files/file-viewer';
 import { TerminalPane } from '@/components/terminal/terminal-pane';
+import { TerminalStatusBar } from '@/components/terminal/terminal-status-bar';
 import { TerminalTabs } from '@/components/terminal/terminal-tabs';
 import { useTerminalSocketEvents } from '@/hooks/use-terminal-socket';
 import { useFilesStore } from '@/stores/files-store';
@@ -183,6 +184,10 @@ export function SessionPanel({ threadId, cwd, onClose }: Props) {
           </div>
           {!terminalVisible && <FileViewer />}
         </div>
+
+        {terminalVisible && (
+          <TerminalStatusBar contextKey={contextKey} activeTerminalId={activeTerminalId} />
+        )}
       </div>
     </div>
   );

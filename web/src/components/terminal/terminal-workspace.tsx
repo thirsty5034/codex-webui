@@ -2,6 +2,7 @@
 import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { TerminalPane } from '@/components/terminal/terminal-pane';
+import { TerminalStatusBar } from '@/components/terminal/terminal-status-bar';
 import { TerminalTabs } from '@/components/terminal/terminal-tabs';
 import { useTerminalSocketEvents } from '@/hooks/use-terminal-socket';
 import { useTerminalStore } from '@/stores/terminal-store';
@@ -61,6 +62,8 @@ export function TerminalWorkspace({ contextKey, cwd, className }: Props) {
           />
         ))}
       </div>
+
+      <TerminalStatusBar contextKey={contextKey} activeTerminalId={activeTerminalId} />
     </div>
   );
 }
