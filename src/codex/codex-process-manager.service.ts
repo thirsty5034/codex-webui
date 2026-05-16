@@ -63,6 +63,11 @@ export class CodexProcessManager implements OnModuleInit, OnModuleDestroy {
     return this.initResult;
   }
 
+  /** Returns the current app-server generation for generation-scoped caches. */
+  getGeneration(): number {
+    return this.generation;
+  }
+
   /**
    * Registers a forwarded event listener that persists across process restarts.
    *

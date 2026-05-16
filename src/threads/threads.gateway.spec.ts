@@ -3,6 +3,7 @@ import { ThreadsGateway } from './threads.gateway';
 import { CodexProcessManager } from '../codex/codex-process-manager.service';
 import { AuthService } from '../auth/auth.service';
 import { ActiveThreadRegistryService } from './active-thread-registry.service';
+import { PendingApprovalsService } from '../pending-approvals/pending-approvals.service';
 
 describe('ThreadsGateway', () => {
   let gateway: ThreadsGateway;
@@ -27,6 +28,12 @@ describe('ThreadsGateway', () => {
     removeSocket: jest.fn(),
   };
 
+  const mockPendingApprovals = {
+    recordServerRequest: jest.fn(),
+    markResolved: jest.fn(),
+    respondToRequest: jest.fn(),
+  };
+
   const mockServer = {
     to: jest.fn().mockReturnThis(),
     emit: jest.fn(),
@@ -39,6 +46,7 @@ describe('ThreadsGateway', () => {
         { provide: CodexProcessManager, useValue: mockManager },
         { provide: AuthService, useValue: mockAuthService },
         { provide: ActiveThreadRegistryService, useValue: mockActiveThreads },
+        { provide: PendingApprovalsService, useValue: mockPendingApprovals },
       ],
     }).compile();
 
@@ -173,14 +181,16 @@ describe('ThreadsGateway', () => {
     expect(client.disconnect).not.toHaveBeenCalled();
   });
 
-  it('should forward server response to codex client', () => {
-    const mockClient = { respondToServerRequest: jest.fn() };
-    mockManager.getClient.mockReturnValue(mockClient);
-
-    gateway.handleServerResponse({ id: 42, result: { approved: true } });
-
-    expect(mockClient.respondToServerRequest).toHaveBeenCalledWith(42, {
-      approved: true,
+  it('should forward server response through pending approval service', () => {
+    gateway.handleServerResponse({ id: 'socket-1' } as never, {
+      id: 42,
+      result: { approved: true },
     });
+
+    expect(mockPendingApprovals.respondToRequest).toHaveBeenCalledWith(
+      '42',
+      { approved: true },
+      'socket-1',
+    );
   });
 });

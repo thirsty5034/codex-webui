@@ -1,6 +1,6 @@
 /**
  * Chat view for the index route (no thread selected).
- * Clears active thread in store so UI returns to empty state.
+ * Only clears visible selection; running threads remain subscribed and recoverable.
  */
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -9,12 +9,11 @@ import { useTimelineStore } from '@/stores/timeline-store';
 export function ChatView() {
   const { t } = useTranslation();
   const threadId = useTimelineStore((s) => s.threadId);
-  const clearThread = useTimelineStore((s) => s.clearThread);
+  const selectThread = useTimelineStore((s) => s.selectThread);
 
-  // Landing on / means no thread is active — clear any stale store state
   useEffect(() => {
-    if (threadId) clearThread();
-  }, [threadId, clearThread]);
+    if (threadId) selectThread(null);
+  }, [threadId, selectThread]);
 
   return (
     <div className="flex flex-1 items-center justify-center text-muted-foreground">

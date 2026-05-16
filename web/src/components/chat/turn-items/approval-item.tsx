@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { getSocket } from '@/socket';
+import { pendingApprovalsRespond } from '@/generated/api/sdk.gen';
 import { useTimelineStore } from '@/stores/timeline-store';
 import type {
   ApprovalRequest,
@@ -53,38 +53,34 @@ export function ApprovalItem({ approval }: Props) {
   const avail = approval.availableDecisions;
 
   const handleDecision = (decision: ResolvableApprovalDecision) => {
-    const socket = getSocket();
-    socket.emit('codex.serverResponse', {
-      id: approval.requestId,
-      result: { decision: toRpcDecision(decision) },
-    });
-    resolveApproval(approval.itemId, decision);
+    void pendingApprovalsRespond({
+      path: { requestId: String(approval.requestId) },
+      body: { result: { decision: toRpcDecision(decision) } },
+    })
+      .then(() => resolveApproval(approval.itemId, decision))
+      .catch(() => undefined);
   };
 
   const handleExecAmendment = () => {
     const patterns = approval.proposedExecpolicyAmendment;
     if (!patterns?.length) return;
-    const socket = getSocket();
-    socket.emit('codex.serverResponse', {
-      id: approval.requestId,
-      result: {
-        decision: { acceptWithExecpolicyAmendment: { execpolicy_amendment: patterns } },
-      },
-    });
-    resolveApproval(approval.itemId, 'accepted');
+    void pendingApprovalsRespond({
+      path: { requestId: String(approval.requestId) },
+      body: { result: { decision: { acceptWithExecpolicyAmendment: { execpolicy_amendment: patterns } } } },
+    })
+      .then(() => resolveApproval(approval.itemId, 'accepted'))
+      .catch(() => undefined);
   };
 
   const handleNetworkAmendment = (index: number) => {
     const amendment = approval.proposedNetworkPolicyAmendments?.[index];
     if (!amendment) return;
-    const socket = getSocket();
-    socket.emit('codex.serverResponse', {
-      id: approval.requestId,
-      result: {
-        decision: { applyNetworkPolicyAmendment: { network_policy_amendment: amendment } },
-      },
-    });
-    resolveApproval(approval.itemId, 'accepted');
+    void pendingApprovalsRespond({
+      path: { requestId: String(approval.requestId) },
+      body: { result: { decision: { applyNetworkPolicyAmendment: { network_policy_amendment: amendment } } } },
+    })
+      .then(() => resolveApproval(approval.itemId, 'accepted'))
+      .catch(() => undefined);
   };
 
   const isPending = approval.status === 'pending';

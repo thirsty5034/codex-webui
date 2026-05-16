@@ -73,3 +73,37 @@ export const settings = sqliteTable(
 
 export type SettingRow = typeof settings.$inferSelect;
 export type InsertSettingRow = typeof settings.$inferInsert;
+
+/** Persisted app-server requests that require a user response, such as approvals. */
+export const pendingServerRequests = sqliteTable(
+  'pending_server_requests',
+  {
+    generation: integer('generation').notNull(),
+    requestId: text('request_id').notNull(),
+    threadId: text('thread_id').notNull(),
+    turnId: text('turn_id'),
+    itemId: text('item_id'),
+    method: text('method').notNull(),
+    paramsJson: text('params_json').notNull(),
+    status: text('status').notNull(),
+    resolvedBy: text('resolved_by'),
+    createdAt: integer('created_at').notNull(),
+    updatedAt: integer('updated_at').notNull(),
+    resolvedAt: integer('resolved_at'),
+  },
+  (table) => [
+    primaryKey({ columns: [table.generation, table.requestId] }),
+    index('idx_pending_requests_thread_status').on(
+      table.threadId,
+      table.status,
+    ),
+    index('idx_pending_requests_status_updated').on(
+      table.status,
+      table.updatedAt,
+    ),
+  ],
+);
+
+export type PendingServerRequestRow = typeof pendingServerRequests.$inferSelect;
+export type InsertPendingServerRequestRow =
+  typeof pendingServerRequests.$inferInsert;

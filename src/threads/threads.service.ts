@@ -4,10 +4,14 @@
 import { Injectable } from '@nestjs/common';
 import { CodexService } from '../codex/codex.service';
 import type { v2 } from '../codex/codex-schema';
+import { ThreadResumeRegistryService } from './thread-resume-registry.service';
 
 @Injectable()
 export class ThreadsService {
-  constructor(private readonly codex: CodexService) {}
+  constructor(
+    private readonly codex: CodexService,
+    private readonly resumeRegistry: ThreadResumeRegistryService,
+  ) {}
 
   /**
    * Creates a new thread (conversation).
@@ -18,7 +22,12 @@ export class ThreadsService {
   async startThread(
     params: v2.ThreadStartParams,
   ): Promise<v2.ThreadStartResponse> {
-    return this.codex.request<v2.ThreadStartResponse>('thread/start', params);
+    const response = await this.codex.request<v2.ThreadStartResponse>(
+      'thread/start',
+      params,
+    );
+    this.resumeRegistry.markResumed(response.thread.id);
+    return response;
   }
 
   /**
@@ -51,16 +60,13 @@ export class ThreadsService {
   }
 
   /**
-   * Resumes a persisted thread and subscribes to its events.
+   * Ensures a persisted thread is resumed once for the current app-server generation.
    *
    * @param threadId - The thread identifier
-   * @returns The resumed thread with resolved settings
+   * @returns The resumed or already-active thread with resolved settings
    */
   async resumeThread(threadId: string): Promise<v2.ThreadResumeResponse> {
-    return this.codex.request<v2.ThreadResumeResponse>('thread/resume', {
-      threadId,
-      persistExtendedHistory: true,
-    });
+    return this.resumeRegistry.ensureResumed(threadId);
   }
 
   /**
@@ -102,6 +108,7 @@ export class ThreadsService {
     await this.codex.request<v2.ThreadArchiveResponse>('thread/archive', {
       threadId,
     });
+    this.resumeRegistry.forget(threadId);
   }
 
   /**
@@ -135,10 +142,15 @@ export class ThreadsService {
    * @returns The forked thread and resolved settings
    */
   async forkThread(threadId: string): Promise<v2.ThreadForkResponse> {
-    return this.codex.request<v2.ThreadForkResponse>('thread/fork', {
-      threadId,
-      persistExtendedHistory: true,
-    });
+    const response = await this.codex.request<v2.ThreadForkResponse>(
+      'thread/fork',
+      {
+        threadId,
+        persistExtendedHistory: true,
+      },
+    );
+    this.resumeRegistry.markResumed(response.thread.id);
+    return response;
   }
 
   /**

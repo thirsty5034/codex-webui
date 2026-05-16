@@ -15,6 +15,7 @@ import { FilesModule } from './files/files.module';
 import { LogsModule } from './logs/logs.module';
 import { McpServersModule } from './mcp-servers/mcp-servers.module';
 import { ModelsModule } from './models/models.module';
+import { PendingApprovalsModule } from './pending-approvals/pending-approvals.module';
 import { SettingsModule } from './settings/settings.module';
 import { TerminalModule } from './terminal/terminal.module';
 import { ThreadsModule } from './threads/threads.module';
@@ -86,6 +87,7 @@ const PINO_REDACT = {
     SettingsModule,
     TerminalModule,
     ThreadsModule,
+    PendingApprovalsModule,
     TokenUsageModule,
     TurnDiffModule,
     ModelsModule,

@@ -1,21 +1,29 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ThreadsService } from './threads.service';
 import { CodexService } from '../codex/codex.service';
+import { ThreadResumeRegistryService } from './thread-resume-registry.service';
 
 describe('ThreadsService', () => {
   let service: ThreadsService;
   const mockCodex = { request: jest.fn() };
+  const mockResumeRegistry = {
+    ensureResumed: jest.fn(),
+    markResumed: jest.fn(),
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ThreadsService,
         { provide: CodexService, useValue: mockCodex },
+        { provide: ThreadResumeRegistryService, useValue: mockResumeRegistry },
       ],
     }).compile();
 
     service = module.get(ThreadsService);
     mockCodex.request.mockReset();
+    mockResumeRegistry.ensureResumed.mockReset();
+    mockResumeRegistry.markResumed.mockReset();
   });
 
   it('should call thread/start', async () => {
@@ -32,6 +40,7 @@ describe('ThreadsService', () => {
       experimentalRawEvents: false,
       persistExtendedHistory: true,
     });
+    expect(mockResumeRegistry.markResumed).toHaveBeenCalledWith('t1');
   });
 
   it('should call thread/list with params', async () => {
@@ -53,6 +62,14 @@ describe('ThreadsService', () => {
       threadId: 't1',
       includeTurns: true,
     });
+  });
+
+  it('should ensure resume via registry', async () => {
+    const response = { thread: { id: 't1' }, cwd: '/tmp' };
+    mockResumeRegistry.ensureResumed.mockResolvedValue(response);
+
+    await expect(service.resumeThread('t1')).resolves.toBe(response);
+    expect(mockResumeRegistry.ensureResumed).toHaveBeenCalledWith('t1');
   });
 
   it('should call turn/start', async () => {

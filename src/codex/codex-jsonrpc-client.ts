@@ -146,7 +146,9 @@ export class CodexJsonRpcClient extends EventEmitter<CodexJsonRpcClientEvents> {
    * @param result - The response payload
    */
   respondToServerRequest(id: RequestId, result: unknown): void {
-    if (this.closed) return;
+    if (this.closed) {
+      throw new Error('Cannot respond: app-server client is closed');
+    }
     const message = { id, result };
     this.writeJsonl('out', message);
     this.send(message);

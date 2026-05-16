@@ -308,5 +308,7 @@
   "unsupported": "不支持",
   "notLoggedIn": "未登录",
   "bearerToken": "令牌",
-  "oAuth": "OAuth"
+  "oAuth": "OAuth",
+  "Approval needed in {{thread}}": "{{thread}} 需要审批",
+  "Open thread": "打开会话"
 }

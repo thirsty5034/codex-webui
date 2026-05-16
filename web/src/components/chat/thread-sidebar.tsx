@@ -17,7 +17,6 @@ import {
   threadsForkThreadMutation,
   threadsListThreadsOptions,
   threadsListThreadsQueryKey,
-  threadsReadThreadOptions,
   threadsResumeThreadMutation,
   threadsSetThreadNameMutation,
   threadsStartThreadMutation,
@@ -26,7 +25,6 @@ import {
 import { tokenUsageReadThreadTokenUsage, turnDiffReadThreadTurnDiffs } from '@/generated/api/sdk.gen';
 import type { ThreadDto } from '@/generated/api';
 import { useTimelineStore } from '@/stores/timeline-store';
-import { showSnackbar } from '@/stores/snackbar-store';
 import { cn } from '@/lib/utils';
 import type { ConfirmAction, SidebarView } from './sidebar/sidebar-types';
 import { threadLabel, groupByWorkspace } from './sidebar/sidebar-types';
@@ -54,15 +52,20 @@ export function ThreadSidebar() {
   const threadId = useTimelineStore((s) => s.threadId);
   const threadMode = useTimelineStore((s) => s.threadMode);
   const loading = useTimelineStore((s) => s.loading);
+  const approvals = useTimelineStore((s) => s.approvals);
+  const threadStatus = useTimelineStore((s) => s.threadStatus);
+  const threadsById = useTimelineStore((s) => s.threadsById);
   const setActiveThread = useTimelineStore((s) => s.setActiveThread);
-  const setReadOnlyThread = useTimelineStore((s) => s.setReadOnlyThread);
   const clearThread = useTimelineStore((s) => s.clearThread);
-  const hydrateTimeline = useTimelineStore((s) => s.hydrateTimeline);
-  const hydrateTokenUsage = useTimelineStore((s) => s.hydrateTokenUsage);
-  const hydrateTurnDiffs = useTimelineStore((s) => s.hydrateTurnDiffs);
   const setThreadTitle = useTimelineStore((s) => s.setThreadTitle);
+  const hydrateTimelineForThread = useTimelineStore((s) => s.hydrateTimelineForThread);
+  const hydrateTokenUsageForThread = useTimelineStore((s) => s.hydrateTokenUsageForThread);
+  const hydrateTurnDiffsForThread = useTimelineStore((s) => s.hydrateTurnDiffsForThread);
+  const setThreadTitleForThread = useTimelineStore((s) => s.setThreadTitleForThread);
+  const setLoadingForThread = useTimelineStore((s) => s.setLoadingForThread);
+  const setThreadStatusForThread = useTimelineStore((s) => s.setThreadStatusForThread);
+  const setActiveTurnIdForThread = useTimelineStore((s) => s.setActiveTurnIdForThread);
   const addSystemError = useTimelineStore((s) => s.addSystemError);
-  const setLoading = useTimelineStore((s) => s.setLoading);
   const queryClient = useQueryClient();
 
   // ── Local UI state ──────────────────────────────────────────────────
@@ -109,48 +112,33 @@ export function ThreadSidebar() {
   const resumeThread = useMutation({
     ...threadsResumeThreadMutation(),
     onSuccess: (res) => {
-      setThreadTitle(threadLabel(res.thread));
-      hydrateTimeline(res.thread.turns, res.cwd);
       const tid = res.thread.id;
+      setThreadTitleForThread(tid, threadLabel(res.thread));
+      hydrateTimelineForThread(tid, res.thread.turns, res.cwd);
+      setThreadStatusForThread(tid, res.thread.status);
+      const activeTurn = res.thread.turns.find((turn) => turn.status === 'inProgress');
+      setActiveTurnIdForThread(tid, activeTurn?.id ?? null);
+      setLoadingForThread(tid, Boolean(activeTurn));
       void tokenUsageReadThreadTokenUsage({ path: { threadId: tid } })
-        .then(({ data }) => data && hydrateTokenUsage(data.turns))
+        .then(({ data }) => data && hydrateTokenUsageForThread(tid, data.turns))
         .catch(() => undefined);
       void turnDiffReadThreadTurnDiffs({ path: { threadId: tid } })
-        .then(({ data }) => data && hydrateTurnDiffs(data.turns))
+        .then(({ data }) => data && hydrateTurnDiffsForThread(tid, data.turns))
         .catch(() => undefined);
     },
-    onError: () => setLoading(false),
+    onError: (_err, vars) => setLoadingForThread(vars.path.threadId, false),
   });
 
-  const openArchivedThread = async (thread: ThreadDto) => {
+  /** Navigate to archived thread — ThreadView handles loading (resume → fail → read). */
+  const openArchivedThread = (thread: ThreadDto) => {
     if (thread.id === threadId && threadMode === 'readOnly') return;
-    setLoading(true);
-    try {
-      const res = await queryClient.fetchQuery(
-        threadsReadThreadOptions({
-          path: { threadId: thread.id },
-          query: { includeTurns: true },
-        }),
-      );
-      setReadOnlyThread(res.thread);
-      const tid = res.thread.id;
-      void tokenUsageReadThreadTokenUsage({ path: { threadId: tid } })
-        .then(({ data }) => data && hydrateTokenUsage(data.turns))
-        .catch(() => undefined);
-      void turnDiffReadThreadTurnDiffs({ path: { threadId: tid } })
-        .then(({ data }) => data && hydrateTurnDiffs(data.turns))
-        .catch(() => undefined);
-      void navigate({ to: '/t/$threadId', params: { threadId: thread.id } });
-    } catch {
-      setLoading(false);
-      showSnackbar(t('Cannot read archived thread. Try unarchive or fork.'), 'warning');
-    }
+    void navigate({ to: '/t/$threadId', params: { threadId: thread.id } });
   };
 
   const openLiveThread = (thread: ThreadDto) => {
     if (thread.id === threadId && threadMode === 'live') return;
     setActiveThread(thread.id, thread.cwd, threadLabel(thread));
-    setLoading(true);
+    setLoadingForThread(thread.id, true);
     resumeThread.mutate({ path: { threadId: thread.id } });
     void navigate({ to: '/t/$threadId', params: { threadId: thread.id } });
   };
@@ -179,7 +167,11 @@ export function ThreadSidebar() {
 
   const archiveThread = useMutation({
     ...threadsArchiveThreadMutation(),
-    onSuccess: (_res, vars) => { invalidateThreads(); switchAfterArchive(vars.path.threadId); },
+    onSuccess: (_res, vars) => {
+      useTimelineStore.getState().unsubscribeThread(vars.path.threadId);
+      invalidateThreads();
+      switchAfterArchive(vars.path.threadId);
+    },
   });
 
   const unarchiveThread = useMutation({
@@ -200,12 +192,12 @@ export function ThreadSidebar() {
     onSuccess: (res) => {
       const tid = res.thread.id;
       setActiveThread(tid, res.cwd, threadLabel(res.thread));
-      hydrateTimeline(res.thread.turns, res.cwd);
+      hydrateTimelineForThread(tid, res.thread.turns, res.cwd);
       void tokenUsageReadThreadTokenUsage({ path: { threadId: tid } })
-        .then(({ data }) => data && hydrateTokenUsage(data.turns))
+        .then(({ data }) => data && hydrateTokenUsageForThread(tid, data.turns))
         .catch(() => undefined);
       void turnDiffReadThreadTurnDiffs({ path: { threadId: tid } })
-        .then(({ data }) => data && hydrateTurnDiffs(data.turns))
+        .then(({ data }) => data && hydrateTurnDiffsForThread(tid, data.turns))
         .catch(() => undefined);
       invalidateThreads();
       void navigate({ to: '/t/$threadId', params: { threadId: tid } });
@@ -261,22 +253,38 @@ export function ThreadSidebar() {
   };
 
   // ── Shared thread-row renderer (passed to overview/detail) ──────────
-  const renderThreadRow = (thread: ThreadDto, archived: boolean) => (
-    <ThreadRow
-      key={thread.id}
-      thread={thread}
-      archived={archived}
-      isActive={thread.id === threadId && activeView === 'chat'}
-      destructiveDisabled={loading && thread.id === threadId}
-      actionPending={forkThread.isPending || unarchiveThread.isPending}
-      onOpen={() => { if (archived) void openArchivedThread(thread); else openLiveThread(thread); }}
-      onRename={() => startRename(thread)}
-      onArchive={() => setConfirmAction({ type: 'archive', thread })}
-      onUnarchive={() => unarchiveThread.mutate({ path: { threadId: thread.id } })}
-      onCompact={() => setConfirmAction({ type: 'compact', thread })}
-      onFork={() => forkThread.mutate({ path: { threadId: thread.id } })}
-    />
-  );
+  const renderThreadRow = (thread: ThreadDto, archived: boolean) => {
+    const runtime = thread.id === threadId
+      ? { loading, approvals, threadStatus }
+      : threadsById[thread.id];
+    const running = Boolean(runtime?.loading);
+    const flagBlocked =
+      runtime?.threadStatus?.type === 'active' &&
+      runtime.threadStatus.activeFlags.includes('waitingOnApproval');
+    const cardBlocked = Object.values(runtime?.approvals ?? {}).some(
+      (approval) => approval.status === 'pending',
+    );
+    const pendingApproval = Boolean(flagBlocked || cardBlocked);
+
+    return (
+      <ThreadRow
+        key={thread.id}
+        thread={thread}
+        archived={archived}
+        isActive={thread.id === threadId && activeView === 'chat'}
+        destructiveDisabled={running}
+        actionPending={forkThread.isPending || unarchiveThread.isPending}
+        running={running}
+        pendingApproval={pendingApproval}
+        onOpen={() => { if (archived) void openArchivedThread(thread); else openLiveThread(thread); }}
+        onRename={() => startRename(thread)}
+        onArchive={() => setConfirmAction({ type: 'archive', thread })}
+        onUnarchive={() => unarchiveThread.mutate({ path: { threadId: thread.id } })}
+        onCompact={() => setConfirmAction({ type: 'compact', thread })}
+        onFork={() => forkThread.mutate({ path: { threadId: thread.id } })}
+      />
+    );
+  };
 
   // ── Render ──────────────────────────────────────────────────────────
   return (

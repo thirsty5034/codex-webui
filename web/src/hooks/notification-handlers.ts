@@ -68,8 +68,8 @@ type Handler = (params: Params, ctx: NotificationContext) => void;
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Checks if the notification belongs to the currently active thread. */
-function isForActiveThread(params: Params, ctx: NotificationContext): boolean {
+/** Checks if the notification carries a thread scope matching the routed context. */
+function hasThreadScope(params: Params, ctx: NotificationContext): boolean {
   const eventThreadId = params.threadId as string | undefined;
   return Boolean(eventThreadId && ctx.threadId === eventThreadId);
 }
@@ -82,6 +82,7 @@ const recentErrors = new Map<string, number>();
 const DEDUP_WINDOW_MS = 5_000;
 /** Tracks final error system entries to avoid duplicates from error + turn/completed. */
 const finalErrorEntries = new Set<string>();
+const MAX_FINAL_ERROR_ENTRIES = 500;
 
 function isDuplicateRetryError(key: string): boolean {
   const now = Date.now();
@@ -98,6 +99,10 @@ function isDuplicateRetryError(key: string): boolean {
 function shouldRecordFinalError(threadId: string | undefined, turnId: string | undefined, message: string): boolean {
   const key = `${threadId ?? ''}:${turnId ?? ''}:${message}`;
   if (finalErrorEntries.has(key)) return false;
+  if (finalErrorEntries.size >= MAX_FINAL_ERROR_ENTRIES) {
+    const first = finalErrorEntries.values().next().value;
+    if (first !== undefined) finalErrorEntries.delete(first);
+  }
   finalErrorEntries.add(key);
   return true;
 }
@@ -142,7 +147,7 @@ function isPlanStepStatus(value: unknown): value is TurnPlanStepStatus {
 
 const handleReasoningSummaryTextDelta: Handler = (params, ctx) => {
   const { turnId, itemId, delta } = params as { turnId?: string; itemId?: string; delta?: string };
-  if (!turnId || !itemId || !isForActiveThread(params, ctx)) return;
+  if (!turnId || !itemId || !hasThreadScope(params, ctx)) return;
   ctx.updateTurnItem(turnId, itemId, (existing) => ({
     type: 'reasoning',
     itemId,
@@ -154,7 +159,7 @@ const handleReasoningSummaryTextDelta: Handler = (params, ctx) => {
 
 const handleAgentMessageDelta: Handler = (params, ctx) => {
   const { turnId, itemId, delta } = params as { turnId?: string; itemId?: string; delta?: string };
-  if (!turnId || !itemId || !isForActiveThread(params, ctx)) return;
+  if (!turnId || !itemId || !hasThreadScope(params, ctx)) return;
   ctx.updateTurnItem(turnId, itemId, (existing) => ({
     type: 'agentMessage',
     itemId,
@@ -165,7 +170,7 @@ const handleAgentMessageDelta: Handler = (params, ctx) => {
 
 const handleCommandExecutionOutputDelta: Handler = (params, ctx) => {
   const { turnId, itemId, delta } = params as { turnId?: string; itemId?: string; delta?: string };
-  if (!turnId || !itemId || !isForActiveThread(params, ctx)) return;
+  if (!turnId || !itemId || !hasThreadScope(params, ctx)) return;
   ctx.updateTurnItem(turnId, itemId, (existing) => ({
     ...(existing ?? { type: 'commandExecution' as const, itemId }),
     content: (existing?.content ?? '') + (delta ?? ''),
@@ -175,7 +180,7 @@ const handleCommandExecutionOutputDelta: Handler = (params, ctx) => {
 
 const handleFileChangeOutputDelta: Handler = (params, ctx) => {
   const { turnId, itemId, delta } = params as { turnId?: string; itemId?: string; delta?: string };
-  if (!turnId || !itemId || !isForActiveThread(params, ctx)) return;
+  if (!turnId || !itemId || !hasThreadScope(params, ctx)) return;
   ctx.updateTurnItem(turnId, itemId, (existing) => ({
     ...(existing ?? { type: 'fileChange' as const, itemId }),
     content: (existing?.content ?? '') + (delta ?? ''),
@@ -186,13 +191,13 @@ const handleFileChangeOutputDelta: Handler = (params, ctx) => {
 const handleTurnDiffUpdated: Handler = (params, ctx) => {
   const { turnId } = params as { turnId?: string };
   const diff = params.diff as string | undefined;
-  if (!turnId || typeof diff !== 'string' || !isForActiveThread(params, ctx)) return;
+  if (!turnId || typeof diff !== 'string' || !hasThreadScope(params, ctx)) return;
   ctx.updateTurnDiff(turnId, diff);
 };
 
 const handleItemStarted: Handler = (params, ctx) => {
   const { turnId } = params as { turnId?: string };
-  if (!turnId || !isForActiveThread(params, ctx)) return;
+  if (!turnId || !hasThreadScope(params, ctx)) return;
   const item = params.item as Record<string, unknown> | undefined;
   if (!item) return;
   const id = item.id as string;
@@ -232,7 +237,7 @@ const handleItemStarted: Handler = (params, ctx) => {
 
 const handleItemCompleted: Handler = (params, ctx) => {
   const { turnId } = params as { turnId?: string };
-  if (!turnId || !isForActiveThread(params, ctx)) return;
+  if (!turnId || !hasThreadScope(params, ctx)) return;
   const item = params.item as Record<string, unknown> | undefined;
   if (!item) return;
   const completedItemId = (params.itemId as string) ?? (item.id as string);
@@ -299,7 +304,7 @@ const handleTurnCompleted: Handler = (params, ctx) => {
   const turnId = turn?.id;
   if (!turnId) return;
 
-  if (!isForActiveThread(params, ctx)) {
+  if (!hasThreadScope(params, ctx)) {
     // Still invalidate thread list for non-active threads
     void ctx.queryClient.invalidateQueries({ queryKey: threadsListThreadsQueryKey() });
     return;
@@ -354,13 +359,13 @@ const handleError: Handler = (params, ctx) => {
 const handleTokenUsageUpdated: Handler = (params, ctx) => {
   const turnId = params.turnId as string | undefined;
   const tokenUsage = params.tokenUsage as ThreadTokenUsage | undefined;
-  if (!turnId || !tokenUsage || !isForActiveThread(params, ctx)) return;
+  if (!turnId || !tokenUsage || !hasThreadScope(params, ctx)) return;
   ctx.setTokenUsage(turnId, tokenUsage);
 };
 
 const handleServerRequestResolved: Handler = (params, ctx) => {
   const requestId = params.requestId as string | number | undefined;
-  if (requestId == null || !isForActiveThread(params, ctx)) return;
+  if (requestId == null || !hasThreadScope(params, ctx)) return;
   ctx.resolveApprovalByRequestId(requestId);
 };
 
@@ -377,7 +382,7 @@ const handleDeprecationNotice: Handler = (params) => {
 
 const handleTurnPlanUpdated: Handler = (params, ctx) => {
   const turnId = params.turnId as string | undefined;
-  if (!turnId || !isForActiveThread(params, ctx)) return;
+  if (!turnId || !hasThreadScope(params, ctx)) return;
   const rawPlan = Array.isArray(params.plan) ? params.plan : [];
   const steps = rawPlan
     .map((step) => step as { step?: unknown; status?: unknown })
@@ -398,7 +403,7 @@ const handlePlanDelta: Handler = (params, ctx) => {
     itemId?: string;
     delta?: string;
   };
-  if (!turnId || !itemId || !delta || !isForActiveThread(params, ctx)) return;
+  if (!turnId || !itemId || !delta || !hasThreadScope(params, ctx)) return;
   ctx.appendPlanDelta(turnId, itemId, delta);
 };
 
@@ -408,7 +413,7 @@ const handleMcpToolCallProgress: Handler = (params, ctx) => {
     itemId?: string;
     message?: string;
   };
-  if (!turnId || !itemId || !isForActiveThread(params, ctx)) return;
+  if (!turnId || !itemId || !hasThreadScope(params, ctx)) return;
   ctx.updateTurnItem(turnId, itemId, (existing) => ({
     ...(existing ?? {
       type: 'mcpToolCall' as const,
@@ -645,19 +650,29 @@ export function handleNotification(
   ctx: NotificationContext,
 ): void {
   const handler = HANDLERS[method];
-  if (handler) {
-    handler(params, ctx);
-    return;
-  }
+  const eventThreadId = params.threadId as string | undefined;
+  const previousThreadId = ctx.threadId;
 
-  if (TIER3_METHODS.has(method)) {
-    if (import.meta.env.DEV) {
-      console.debug(`[codex] tier3 notification: ${method}`);
+  // Route thread-scoped notifications to their owning thread runtime.
+  if (eventThreadId) ctx.threadId = eventThreadId;
+
+  try {
+    if (handler) {
+      handler(params, ctx);
+      return;
     }
-    return;
-  }
 
-  if (import.meta.env.DEV) {
-    console.debug(`[codex] unknown notification: ${method}`);
+    if (TIER3_METHODS.has(method)) {
+      if (import.meta.env.DEV) {
+        console.debug(`[codex] tier3 notification: ${method}`);
+      }
+      return;
+    }
+
+    if (import.meta.env.DEV) {
+      console.debug(`[codex] unknown notification: ${method}`);
+    }
+  } finally {
+    ctx.threadId = previousThreadId;
   }
 }

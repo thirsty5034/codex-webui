@@ -6,12 +6,19 @@ import { create } from 'zustand';
 
 export type SnackbarSeverity = 'info' | 'success' | 'warning' | 'error';
 
+export interface SnackbarAction {
+  label: string;
+  onClick: () => void;
+}
+
 export interface SnackbarItem {
   id: string;
   message: string;
   severity: SnackbarSeverity;
   /** Auto-dismiss duration in ms. 0 = manual only. */
   duration: number;
+  /** Optional single action, used for background approval jump-to-thread. */
+  action?: SnackbarAction;
 }
 
 const MAX_VISIBLE = 5;
@@ -23,7 +30,12 @@ interface SnackbarState {
   /** Queued snackbars waiting for a slot. */
   queue: SnackbarItem[];
 
-  show: (message: string, severity?: SnackbarSeverity, duration?: number) => void;
+  show: (
+    message: string,
+    severity?: SnackbarSeverity,
+    duration?: number,
+    action?: SnackbarAction,
+  ) => void;
   dismiss: (id: string) => void;
   clear: () => void;
 }
@@ -32,12 +44,13 @@ export const useSnackbarStore = create<SnackbarState>((set, get) => ({
   visible: [],
   queue: [],
 
-  show: (message, severity = 'info', duration = 3000) => {
+  show: (message, severity = 'info', duration = 3000, action) => {
     const item: SnackbarItem = {
       id: `snack-${++nextId}`,
       message,
       severity,
       duration,
+      action,
     };
 
     const { visible, queue } = get();
@@ -76,6 +89,7 @@ export function showSnackbar(
   message: string,
   severity: SnackbarSeverity = 'info',
   duration = 3000,
+  action?: SnackbarAction,
 ) {
-  useSnackbarStore.getState().show(message, severity, duration);
+  useSnackbarStore.getState().show(message, severity, duration, action);
 }

@@ -70,7 +70,21 @@ function SnackbarToast({ item }: { item: SnackbarItem }) {
       aria-live="polite"
     >
       <Icon className={cn('mt-0.5 h-4 w-4 shrink-0', config.text)} />
-      <p className="min-w-0 flex-1 text-sm text-foreground">{item.message}</p>
+      <div className="min-w-0 flex-1 space-y-1">
+        <p className="text-sm text-foreground">{item.message}</p>
+        {item.action && (
+          <button
+            type="button"
+            className="text-xs font-medium text-primary hover:underline"
+            onClick={() => {
+              item.action?.onClick();
+              dismiss(item.id);
+            }}
+          >
+            {item.action.label}
+          </button>
+        )}
+      </div>
       <button
         type="button"
         onClick={() => dismiss(item.id)}

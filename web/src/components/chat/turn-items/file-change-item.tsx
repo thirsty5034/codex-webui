@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { getSocket } from '@/socket';
+import { pendingApprovalsRespond } from '@/generated/api/sdk.gen';
 import { useTimelineStore } from '@/stores/timeline-store';
 import type { TurnItem } from '@/types/timeline';
 import type { ApprovalRequest, ResolvableApprovalDecision } from '@/types/approval';
@@ -61,12 +61,12 @@ export function FileChangeItem({ item, approval }: Props) {
 
   const handleDecision = (decision: ResolvableApprovalDecision) => {
     if (!approval) return;
-    const socket = getSocket();
-    socket.emit('codex.serverResponse', {
-      id: approval.requestId,
-      result: { decision: toRpcDecision(decision) },
-    });
-    resolveApproval(approval.itemId, decision);
+    void pendingApprovalsRespond({
+      path: { requestId: String(approval.requestId) },
+      body: { result: { decision: toRpcDecision(decision) } },
+    })
+      .then(() => resolveApproval(approval.itemId, decision))
+      .catch(() => undefined);
   };
 
   return (

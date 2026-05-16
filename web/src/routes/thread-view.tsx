@@ -1,6 +1,6 @@
 /**
  * Thread route component — resumes/reads a thread by URL param.
- * Manages session panel and ChatInput within the thread context.
+ * Selecting a thread no longer clears other live thread state.
  */
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from '@tanstack/react-router';
@@ -31,62 +31,79 @@ export function ThreadView() {
   const [sessionPanelOpen, setSessionPanelOpen] = useState(false);
   const sessionPanelHeight = 300;
 
-  const storeThreadId = useTimelineStore((s) => s.threadId);
   const threadCwd = useTimelineStore((s) => s.threadCwd);
   const setActiveThread = useTimelineStore((s) => s.setActiveThread);
   const setReadOnlyThread = useTimelineStore((s) => s.setReadOnlyThread);
-  const hydrateTimeline = useTimelineStore((s) => s.hydrateTimeline);
-  const hydrateTokenUsage = useTimelineStore((s) => s.hydrateTokenUsage);
-  const hydrateTurnDiffs = useTimelineStore((s) => s.hydrateTurnDiffs);
-  const setThreadTitle = useTimelineStore((s) => s.setThreadTitle);
-  const setLoading = useTimelineStore((s) => s.setLoading);
+  const hydrateTimelineForThread = useTimelineStore((s) => s.hydrateTimelineForThread);
+  const hydrateTokenUsageForThread = useTimelineStore((s) => s.hydrateTokenUsageForThread);
+  const hydrateTurnDiffsForThread = useTimelineStore((s) => s.hydrateTurnDiffsForThread);
+  const setThreadTitleForThread = useTimelineStore((s) => s.setThreadTitleForThread);
+  const setThreadStatusForThread = useTimelineStore((s) => s.setThreadStatusForThread);
+  const setActiveTurnIdForThread = useTimelineStore((s) => s.setActiveTurnIdForThread);
+  const setLoadingForThread = useTimelineStore((s) => s.setLoadingForThread);
 
   const resumeThread = useMutation({
     ...threadsResumeThreadMutation(),
     onSuccess: (res) => {
-      setThreadTitle(threadLabel(res.thread));
-      hydrateTimeline(res.thread.turns, res.cwd);
-      void tokenUsageReadThreadTokenUsage({ path: { threadId } })
-        .then(({ data }) => data && hydrateTokenUsage(data.turns))
+      const tid = res.thread.id;
+      const title = threadLabel(res.thread);
+      setThreadTitleForThread(tid, title);
+      hydrateTimelineForThread(tid, res.thread.turns, res.cwd);
+      // Restore active turn state so sidebar shows loading and input stays in steer mode.
+      setThreadStatusForThread(tid, res.thread.status);
+      const activeTurn = res.thread.turns.find((t) => t.status === 'inProgress');
+      if (activeTurn) {
+        setActiveTurnIdForThread(tid, activeTurn.id);
+        setLoadingForThread(tid, true);
+      } else {
+        setLoadingForThread(tid, false);
+      }
+      void tokenUsageReadThreadTokenUsage({ path: { threadId: tid } })
+        .then(({ data }) => data && hydrateTokenUsageForThread(tid, data.turns))
         .catch(() => undefined);
-      void turnDiffReadThreadTurnDiffs({ path: { threadId } })
-        .then(({ data }) => data && hydrateTurnDiffs(data.turns))
+      void turnDiffReadThreadTurnDiffs({ path: { threadId: tid } })
+        .then(({ data }) => data && hydrateTurnDiffsForThread(tid, data.turns))
         .catch(() => undefined);
     },
-    onError: () => {
-      setLoading(false);
-      // If resume fails, try reading as archived
-      void tryReadArchived();
+    onError: (_err, vars) => {
+      const failedId = vars.path.threadId;
+      setLoadingForThread(failedId, false);
+      // Only attempt archived read if this thread is still selected.
+      if (useTimelineStore.getState().threadId === failedId) {
+        void tryReadArchived(failedId);
+      }
     },
   });
 
   /** Fallback: try to read the thread as an archived snapshot. */
-  const tryReadArchived = async () => {
+  const tryReadArchived = async (targetId: string) => {
     try {
       const res = await queryClient.fetchQuery(
         threadsReadThreadOptions({
-          path: { threadId },
+          path: { threadId: targetId },
           query: { includeTurns: true },
         }),
       );
+      // Guard: user may have navigated away during the fetch.
+      if (useTimelineStore.getState().threadId !== targetId) return;
       setReadOnlyThread(res.thread);
-      void tokenUsageReadThreadTokenUsage({ path: { threadId } })
-        .then(({ data }) => data && hydrateTokenUsage(data.turns))
+      void tokenUsageReadThreadTokenUsage({ path: { threadId: targetId } })
+        .then(({ data }) => data && hydrateTokenUsageForThread(targetId, data.turns))
         .catch(() => undefined);
-      void turnDiffReadThreadTurnDiffs({ path: { threadId } })
-        .then(({ data }) => data && hydrateTurnDiffs(data.turns))
+      void turnDiffReadThreadTurnDiffs({ path: { threadId: targetId } })
+        .then(({ data }) => data && hydrateTurnDiffsForThread(targetId, data.turns))
         .catch(() => undefined);
     } catch {
+      if (useTimelineStore.getState().threadId !== targetId) return;
       showSnackbar(t('Thread not found or cannot be opened.'), 'error');
       void navigate({ to: '/' });
     }
   };
 
-  // Load thread when URL param changes or doesn't match store
+  // Load or select thread when URL param changes. Backend ensures resume is deduped.
   useEffect(() => {
-    if (storeThreadId === threadId) return;
     setActiveThread(threadId);
-    setLoading(true);
+    setLoadingForThread(threadId, true);
     resumeThread.mutate({ path: { threadId } });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [threadId]);

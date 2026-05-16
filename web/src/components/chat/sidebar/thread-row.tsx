@@ -8,6 +8,7 @@ import {
   Minimize2,
   MoreHorizontal,
   Pencil,
+  ShieldAlert,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -23,6 +24,10 @@ interface Props {
   destructiveDisabled: boolean;
   /** True when any mutation (fork/unarchive) is in-flight for this thread. */
   actionPending: boolean;
+  /** True while this thread has an active turn. */
+  running?: boolean;
+  /** True while this thread has at least one pending approval. */
+  pendingApproval?: boolean;
   onOpen: () => void;
   onRename: () => void;
   onArchive: () => void;
@@ -37,6 +42,8 @@ export function ThreadRow({
   isActive,
   destructiveDisabled,
   actionPending,
+  running = false,
+  pendingApproval = false,
   onOpen,
   onRename,
   onArchive,
@@ -60,8 +67,9 @@ export function ThreadRow({
               : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
         )}
       >
-        <MessageSquare className="h-3 w-3 shrink-0" />
+        {running ? <Loader2 className="h-3 w-3 shrink-0 animate-spin" /> : <MessageSquare className="h-3 w-3 shrink-0" />}
         <span className="truncate">{threadLabel(thread)}</span>
+        {pendingApproval && <ShieldAlert className="ml-auto h-3 w-3 shrink-0 text-yellow-500" />}
       </button>
 
       <Popover>

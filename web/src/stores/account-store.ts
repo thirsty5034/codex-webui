@@ -49,7 +49,7 @@ const emptyLogin: LoginState = {
 };
 
 function loginIdFromResponse(response: LoginAccountResponse): string | null {
-  return 'loginId' in response ? response.loginId : null;
+  return 'loginId' in response ? (response.loginId ?? null) : null;
 }
 
 export const useAccountStore = create<AccountState>((set, get) => ({

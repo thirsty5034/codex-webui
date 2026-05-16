@@ -953,6 +953,32 @@ export type ThreadSetNameRequestDto = {
     name: string;
 };
 
+export type PendingServerRequestDto = {
+    generation: number;
+    requestId: string;
+    threadId: string;
+    turnId: string | null;
+    itemId: string | null;
+    method: string;
+    params: {
+        [key: string]: unknown;
+    };
+    status: 'pending' | 'resolved' | 'expired' | 'failed';
+    createdAt: number;
+    updatedAt: number;
+};
+
+export type PendingServerRequestsResponseDto = {
+    requests: Array<PendingServerRequestDto>;
+};
+
+export type RespondPendingServerRequestDto = {
+    result: {
+        [key: string]: unknown;
+    };
+    clientId?: string;
+};
+
 export type TokenUsageBreakdownDto = {
     totalTokens: number;
     inputTokens: number;
@@ -1956,6 +1982,36 @@ export type ThreadsSetThreadNameResponses = {
 };
 
 export type ThreadsSetThreadNameResponse = ThreadsSetThreadNameResponses[keyof ThreadsSetThreadNameResponses];
+
+export type PendingApprovalsListPendingData = {
+    body?: never;
+    path?: never;
+    query?: {
+        threadIds?: string;
+    };
+    url: '/api/pending-approvals';
+};
+
+export type PendingApprovalsListPendingResponses = {
+    200: PendingServerRequestsResponseDto;
+};
+
+export type PendingApprovalsListPendingResponse = PendingApprovalsListPendingResponses[keyof PendingApprovalsListPendingResponses];
+
+export type PendingApprovalsRespondData = {
+    body: RespondPendingServerRequestDto;
+    path: {
+        requestId: string;
+    };
+    query?: never;
+    url: '/api/pending-approvals/{requestId}/respond';
+};
+
+export type PendingApprovalsRespondResponses = {
+    200: PendingServerRequestDto;
+};
+
+export type PendingApprovalsRespondResponse = PendingApprovalsRespondResponses[keyof PendingApprovalsRespondResponses];
 
 export type TokenUsageReadThreadTokenUsageData = {
     body?: never;

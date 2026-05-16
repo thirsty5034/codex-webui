@@ -1,7 +1,6 @@
 /**
- * Zustand store for chat timeline state.
- * Manages realtime/UI state: active thread, timeline entries, approvals.
- * REST data (thread list, models) is managed by TanStack Query.
+ * Zustand store for multi-thread chat timeline state.
+ * The selected thread only controls visibility; live thread state is isolated by threadId.
  */
 import { create } from 'zustand';
 import { getSocket } from '../socket';
@@ -11,6 +10,34 @@ import type { ThreadDto, TurnDto, FileUpdateChangeDto } from '../generated/api';
 import type { ThreadTokenUsage, ThreadStatusType } from '../types/codex-notifications';
 
 export type ThreadMode = 'live' | 'readOnly';
+
+export interface ThreadRuntimeState {
+  threadId: string;
+  /** Working directory of this thread. */
+  threadCwd: string | null;
+  /** Display title, falling back to preview/id in UI. */
+  threadTitle: string | null;
+  /** Live threads are resumable; read-only threads are archived snapshots. */
+  threadMode: ThreadMode;
+  timeline: TimelineEntry[];
+  loading: boolean;
+  expandedReasoning: Set<string>;
+  approvals: Record<string, ApprovalRequest>;
+  tokenUsageByTurn: Record<string, ThreadTokenUsage>;
+  latestTokenUsage: ThreadTokenUsage | null;
+  threadStatus: ThreadStatusType | null;
+  activeTurnId: string | null;
+  pendingResolvedRequestIds: Set<string>;
+  hydrated: boolean;
+}
+
+interface ThreadRuntimeInput {
+  threadId: string;
+  cwd?: string | null;
+  title?: string | null;
+  mode?: ThreadMode;
+}
+
 
 /** Converts a persisted turn item to a TurnItem for rendering. */
 function parseTurnItem(item: Record<string, unknown>): TurnItem | null {
@@ -115,46 +142,214 @@ function turnsToTimeline(turns: TurnDto[]): TimelineEntry[] {
   return entries;
 }
 
+function createRuntime(input: ThreadRuntimeInput): ThreadRuntimeState {
+  return {
+    threadId: input.threadId,
+    threadCwd: input.cwd ?? null,
+    threadTitle: input.title ?? null,
+    threadMode: input.mode ?? 'live',
+    timeline: [],
+    loading: false,
+    expandedReasoning: new Set<string>(),
+    approvals: {},
+    tokenUsageByTurn: {},
+    latestTokenUsage: null,
+    threadStatus: null,
+    activeTurnId: null,
+    pendingResolvedRequestIds: new Set<string>(),
+    hydrated: false,
+  };
+}
+
+function runtimeFromSelected(state: TimelineState): ThreadRuntimeState | null {
+  if (!state.threadId) return null;
+  return {
+    threadId: state.threadId,
+    threadCwd: state.threadCwd,
+    threadTitle: state.threadTitle,
+    threadMode: state.threadMode,
+    timeline: state.timeline,
+    loading: state.loading,
+    expandedReasoning: state.expandedReasoning,
+    approvals: state.approvals,
+    tokenUsageByTurn: state.tokenUsageByTurn,
+    latestTokenUsage: state.latestTokenUsage,
+    threadStatus: state.threadStatus,
+    activeTurnId: state.activeTurnId,
+    pendingResolvedRequestIds: state.pendingResolvedRequestIds,
+    hydrated: true,
+  };
+}
+
+function readRuntime(state: TimelineState, threadId: string): ThreadRuntimeState | null {
+  if (state.threadId === threadId) return runtimeFromSelected(state);
+  return state.threadsById[threadId] ?? null;
+}
+
+function selectedFields(runtime: ThreadRuntimeState | null): Partial<TimelineState> {
+  if (!runtime) {
+    return {
+      threadId: null,
+      threadCwd: null,
+      threadTitle: null,
+      threadMode: 'live',
+      timeline: [],
+      loading: false,
+      expandedReasoning: new Set<string>(),
+      approvals: {},
+      tokenUsageByTurn: {},
+      latestTokenUsage: null,
+      threadStatus: null,
+      activeTurnId: null,
+      pendingResolvedRequestIds: new Set<string>(),
+    };
+  }
+  return {
+    threadId: runtime.threadId,
+    threadCwd: runtime.threadCwd,
+    threadTitle: runtime.threadTitle,
+    threadMode: runtime.threadMode,
+    timeline: runtime.timeline,
+    loading: runtime.loading,
+    expandedReasoning: runtime.expandedReasoning,
+    approvals: runtime.approvals,
+    tokenUsageByTurn: runtime.tokenUsageByTurn,
+    latestTokenUsage: runtime.latestTokenUsage,
+    threadStatus: runtime.threadStatus,
+    activeTurnId: runtime.activeTurnId,
+    pendingResolvedRequestIds: runtime.pendingResolvedRequestIds,
+  };
+}
+
+function persistSelectedRuntime(state: TimelineState): Record<string, ThreadRuntimeState> {
+  const selected = runtimeFromSelected(state);
+  if (!selected) return state.threadsById;
+  return { ...state.threadsById, [selected.threadId]: selected };
+}
+
+function hasPendingApproval(runtime: ThreadRuntimeState | null): boolean {
+  if (!runtime) return false;
+  const flagBlocked =
+    runtime.threadStatus?.type === 'active' &&
+    runtime.threadStatus.activeFlags.includes('waitingOnApproval');
+  const cardBlocked = Object.values(runtime.approvals).some((approval) => approval.status === 'pending');
+  return flagBlocked || cardBlocked;
+}
+
+function updateRuntimeCurrentTurn(
+  runtime: ThreadRuntimeState,
+  turnId: string,
+  updater: (
+    items: TurnItem[],
+    completed: boolean,
+  ) => { items: TurnItem[]; completed: boolean },
+): ThreadRuntimeState {
+  const idx = runtime.timeline.findIndex(
+    (entry) => entry.kind === 'turn' && entry.turnId === turnId,
+  );
+
+  if (idx >= 0) {
+    const entry = runtime.timeline[idx];
+    if (entry.kind !== 'turn') return runtime;
+    const result = updater(entry.items, entry.completed);
+    const timeline = [...runtime.timeline];
+    timeline[idx] = { ...entry, items: result.items, completed: result.completed };
+    return { ...runtime, timeline };
+  }
+
+  const result = updater([], false);
+  return {
+    ...runtime,
+    timeline: [
+      ...runtime.timeline,
+      { kind: 'turn' as const, turnId, ...result },
+    ],
+  };
+}
+
+function updateRuntimeTurnItem(
+  runtime: ThreadRuntimeState,
+  turnId: string,
+  itemId: string,
+  updater: (existing: TurnItem | undefined) => TurnItem,
+): ThreadRuntimeState {
+  return updateRuntimeCurrentTurn(runtime, turnId, (items, completed) => {
+    const idx = items.findIndex((it) => it.itemId === itemId);
+    if (idx >= 0) {
+      const updated = [...items];
+      updated[idx] = updater(updated[idx]);
+      return { items: updated, completed };
+    }
+    return { items: [...items, updater(undefined)], completed };
+  });
+}
+
+function updateRuntimeDiff(runtime: ThreadRuntimeState, turnId: string, diff: string): ThreadRuntimeState {
+  const timeline = runtime.timeline.map((entry) =>
+    entry.kind === 'turn' && entry.turnId === turnId ? { ...entry, diff } : entry,
+  );
+  return { ...runtime, timeline };
+}
+
+function updateRuntimePlan(
+  runtime: ThreadRuntimeState,
+  turnId: string,
+  plan: TurnPlanState,
+): ThreadRuntimeState {
+  const idx = runtime.timeline.findIndex(
+    (entry) => entry.kind === 'turn' && entry.turnId === turnId,
+  );
+  if (idx >= 0) {
+    const entry = runtime.timeline[idx];
+    if (entry.kind !== 'turn') return runtime;
+    const timeline = [...runtime.timeline];
+    timeline[idx] = { ...entry, plan };
+    return { ...runtime, timeline };
+  }
+  return {
+    ...runtime,
+    timeline: [
+      ...runtime.timeline,
+      { kind: 'turn' as const, turnId, items: [], completed: false, plan },
+    ],
+  };
+}
 
 interface TimelineState {
+  selectedThreadId: string | null;
+  threadsById: Record<string, ThreadRuntimeState>;
+  subscribedThreadIds: Set<string>;
+
   threadId: string | null;
-  /** Working directory of the current thread. */
   threadCwd: string | null;
-  /** Current thread display name, falling back to preview in UI. */
   threadTitle: string | null;
-  /** Live threads are resumable; read-only threads are archived snapshots. */
   threadMode: ThreadMode;
   timeline: TimelineEntry[];
   loading: boolean;
   expandedReasoning: Set<string>;
-  /** Pending/resolved approval requests, keyed by itemId for easy lookup. */
   approvals: Record<string, ApprovalRequest>;
-  /** Token usage per turn (keyed by turnId). */
   tokenUsageByTurn: Record<string, ThreadTokenUsage>;
-  /** Latest token usage snapshot for the active thread (drives ChatInput donut). */
   latestTokenUsage: ThreadTokenUsage | null;
-  /** Active thread status from app-server. */
   threadStatus: ThreadStatusType | null;
-  /** Active turn id observed from a fresh turn/started notification. */
   activeTurnId: string | null;
-  /** Request IDs resolved before their approval card arrived (out-of-order). */
   pendingResolvedRequestIds: Set<string>;
 
-  /** Sets the active thread, subscribes socket, resets timeline. */
+  ensureThreadState: (input: ThreadRuntimeInput) => void;
+  selectThread: (threadId: string | null) => void;
+  resubscribeAll: () => void;
+  unsubscribeThread: (threadId: string) => void;
+  getThreadTitle: (threadId: string) => string;
+  getThreadRuntime: (threadId: string) => ThreadRuntimeState | null;
+  isThreadLoading: (threadId: string) => boolean;
+  hasPendingApproval: (threadId: string) => boolean;
+
   setActiveThread: (threadId: string, cwd?: string | null, title?: string | null) => void;
-  /** Loads a thread snapshot without subscribing it for live updates. */
   setReadOnlyThread: (thread: ThreadDto) => void;
-  /** Clears the selected thread and returns the chat area to the empty state. */
   clearThread: () => void;
-  /** Hydrates timeline from persisted turns (e.g. after resume). */
   hydrateTimeline: (turns: TurnDto[], cwd?: string | null) => void;
-  /** Updates the active thread title after a rename/list refresh. */
   setThreadTitle: (title: string | null) => void;
-  /** Adds a user message to the timeline (optimistic). */
   addUserMessage: (text: string) => void;
-  /** Adds a system error to the timeline. */
   addSystemError: (message: string) => void;
-  /** Adds a system message with optional severity. */
   addSystemMessage: (message: string, severity?: 'info' | 'warning' | 'error') => void;
 
   toggleReasoning: (itemId: string) => void;
@@ -178,363 +373,484 @@ interface TimelineState {
   collapseReasoning: (itemId: string) => void;
   addApproval: (approval: ApprovalRequest) => void;
   resolveApproval: (itemId: string, decision: ResolvableApprovalDecision) => void;
-  /** Stores token usage for a turn and updates latest snapshot. */
   setTokenUsage: (turnId: string, usage: ThreadTokenUsage) => void;
-  /** Updates active thread status. */
   setThreadStatus: (status: ThreadStatusType | null) => void;
-  /** Stores the currently steerable turn id. */
   setActiveTurnId: (turnId: string | null) => void;
-  /** Clears the active turn and marks the active turn as no longer loading. */
   clearActiveTurn: () => void;
-  /** Hydrates token usage snapshots fetched from the backend. */
   hydrateTokenUsage: (turns: Array<{ turnId: string; usage: ThreadTokenUsage }>) => void;
-  /** Hydrates turn-level diffs fetched from the backend (for DiffViewer on resume). */
   hydrateTurnDiffs: (turns: Array<{ turnId: string; diff: string }>) => void;
-  /** Resolves an approval by its JSON-RPC requestId (for serverRequest/resolved). */
   resolveApprovalByRequestId: (requestId: string | number) => void;
+
+  hydrateTimelineForThread: (threadId: string, turns: TurnDto[], cwd?: string | null) => void;
+  hydrateTokenUsageForThread: (threadId: string, turns: Array<{ turnId: string; usage: ThreadTokenUsage }>) => void;
+  hydrateTurnDiffsForThread: (threadId: string, turns: Array<{ turnId: string; diff: string }>) => void;
+  updateCurrentTurnForThread: (
+    threadId: string,
+    turnId: string,
+    updater: (
+      items: TurnItem[],
+      completed: boolean,
+    ) => { items: TurnItem[]; completed: boolean },
+  ) => void;
+  updateTurnItemForThread: (
+    threadId: string,
+    turnId: string,
+    itemId: string,
+    updater: (existing: TurnItem | undefined) => TurnItem,
+  ) => void;
+  updateTurnDiffForThread: (threadId: string, turnId: string, diff: string) => void;
+  updateTurnPlanForThread: (threadId: string, turnId: string, plan: TurnPlanState) => void;
+  appendPlanDeltaForThread: (threadId: string, turnId: string, itemId: string, delta: string) => void;
+  setLoadingForThread: (threadId: string, loading: boolean) => void;
+  addApprovalForThread: (threadId: string, approval: ApprovalRequest) => void;
+  resolveApprovalForThread: (threadId: string, itemId: string, decision: ResolvableApprovalDecision) => void;
+  setTokenUsageForThread: (threadId: string, turnId: string, usage: ThreadTokenUsage) => void;
+  setThreadStatusForThread: (threadId: string, status: ThreadStatusType | null) => void;
+  setActiveTurnIdForThread: (threadId: string, turnId: string | null) => void;
+  clearActiveTurnForThread: (threadId: string) => void;
+  addSystemMessageForThread: (threadId: string, message: string, severity?: 'info' | 'warning' | 'error') => void;
+  addSystemErrorForThread: (threadId: string, message: string) => void;
+  setThreadTitleForThread: (threadId: string, title: string | null) => void;
+  resolveApprovalByRequestIdForThread: (threadId: string, requestId: string | number) => void;
 }
 
-export const useTimelineStore = create<TimelineState>((set, get) => ({
-  threadId: null,
-  threadCwd: null,
-  threadTitle: null,
-  threadMode: 'live',
-  timeline: [],
-  loading: false,
-  expandedReasoning: new Set<string>(),
-  approvals: {},
-  tokenUsageByTurn: {},
-  latestTokenUsage: null,
-  threadStatus: null,
-  activeTurnId: null,
-  pendingResolvedRequestIds: new Set(),
-
-  setActiveThread: (threadId: string, cwd?: string | null, title?: string | null) => {
-    const { threadId: oldId, threadMode: oldMode } = get();
-    if (oldId === threadId && oldMode === 'live') return;
-    if (oldId && oldId !== threadId) {
-      getSocket().emit('thread.unsubscribe', { threadId: oldId });
-    }
-    getSocket().emit('thread.subscribe', { threadId });
-    set({
-      threadId,
-      threadCwd: cwd ?? null,
-      threadTitle: title ?? null,
-      threadMode: 'live',
-      timeline: [],
-      loading: false,
-      expandedReasoning: new Set<string>(),
-      approvals: {},
-      tokenUsageByTurn: {},
-      latestTokenUsage: null,
-      threadStatus: null,
-      activeTurnId: null,
-      pendingResolvedRequestIds: new Set(),
+export const useTimelineStore = create<TimelineState>((set, get) => {
+  const applyThreadUpdate = (
+    threadId: string,
+    updater: (runtime: ThreadRuntimeState) => ThreadRuntimeState,
+  ) => {
+    set((state) => {
+      const base = readRuntime(state, threadId) ?? createRuntime({ threadId });
+      const runtime = updater(base);
+      const threadsById = { ...persistSelectedRuntime(state), [threadId]: runtime };
+      const patch: Partial<TimelineState> = { threadsById };
+      if (state.threadId === threadId) Object.assign(patch, selectedFields(runtime));
+      return patch;
     });
-  },
+  };
 
-  setReadOnlyThread: (thread) => {
-    const { threadId: oldId } = get();
-    if (oldId) {
-      getSocket().emit('thread.unsubscribe', { threadId: oldId });
-    }
-    set({
-      threadId: thread.id,
-      threadCwd: thread.cwd,
-      threadTitle: thread.name ?? thread.preview ?? null,
-      threadMode: 'readOnly',
-      timeline: turnsToTimeline(thread.turns ?? []),
-      loading: false,
-      expandedReasoning: new Set<string>(),
-      approvals: {},
-      tokenUsageByTurn: {},
-      latestTokenUsage: null,
-      threadStatus: thread.status as ThreadStatusType,
-      activeTurnId: null,
-      pendingResolvedRequestIds: new Set(),
-    });
-  },
+  const selectedThread = (): string | null => get().threadId;
 
-  clearThread: () => {
-    const { threadId: oldId } = get();
-    if (oldId) {
-      getSocket().emit('thread.unsubscribe', { threadId: oldId });
-    }
-    set({
-      threadId: null,
-      threadCwd: null,
-      threadTitle: null,
-      threadMode: 'live',
-      timeline: [],
-      loading: false,
-      expandedReasoning: new Set<string>(),
-      approvals: {},
-      tokenUsageByTurn: {},
-      latestTokenUsage: null,
-      threadStatus: null,
-      activeTurnId: null,
-      pendingResolvedRequestIds: new Set(),
-    });
-  },
+  return {
+    selectedThreadId: null,
+    threadsById: {},
+    subscribedThreadIds: new Set<string>(),
 
-  hydrateTimeline: (turns: TurnDto[], cwd?: string | null) => {
-    set({
-      threadCwd: cwd ?? get().threadCwd,
-      loading: false,
-      timeline: turnsToTimeline(turns),
-      activeTurnId: null,
-    });
-  },
+    threadId: null,
+    threadCwd: null,
+    threadTitle: null,
+    threadMode: 'live',
+    timeline: [],
+    loading: false,
+    expandedReasoning: new Set<string>(),
+    approvals: {},
+    tokenUsageByTurn: {},
+    latestTokenUsage: null,
+    threadStatus: null,
+    activeTurnId: null,
+    pendingResolvedRequestIds: new Set(),
 
-  setThreadTitle: (title) => set({ threadTitle: title }),
-
-  addUserMessage: (text: string) => {
-    set((s) => ({
-      timeline: [...s.timeline, { kind: 'user' as const, content: text }],
-      loading: true,
-    }));
-  },
-
-  addSystemError: (message: string) => {
-    set((s) => ({
-      timeline: [
-        ...s.timeline,
-        { kind: 'system' as const, content: `Error: ${message}`, severity: 'error' as const },
-      ],
-      loading: false,
-    }));
-  },
-
-  addSystemMessage: (message: string, severity: 'info' | 'warning' | 'error' = 'info') => {
-    set((s) => ({
-      timeline: [
-        ...s.timeline,
-        { kind: 'system' as const, content: message, severity },
-      ],
-    }));
-  },
-
-  toggleReasoning: (itemId: string) => {
-    set((s) => {
-      const next = new Set(s.expandedReasoning);
-      if (next.has(itemId)) next.delete(itemId);
-      else next.add(itemId);
-      return { expandedReasoning: next };
-    });
-  },
-
-  updateCurrentTurn: (turnId, updater) => {
-    set((s) => {
-      const { timeline } = s;
-      const idx = timeline.findIndex(
-        (e) => e.kind === 'turn' && e.turnId === turnId,
-      );
-
-      if (idx >= 0) {
-        const entry = timeline[idx];
-        if (entry.kind !== 'turn') return {};
-        const result = updater(entry.items, entry.completed);
-        const updated = [...timeline];
-        updated[idx] = { ...entry, items: result.items, completed: result.completed };
-        return { timeline: updated };
-      }
-
-      const result = updater([], false);
-      return {
-        timeline: [
-          ...timeline,
-          { kind: 'turn' as const, turnId, ...result },
-        ],
-      };
-    });
-  },
-
-  updateTurnItem: (turnId, itemId, updater) => {
-    get().updateCurrentTurn(turnId, (items, completed) => {
-      const idx = items.findIndex((it) => it.itemId === itemId);
-      if (idx >= 0) {
-        const updated = [...items];
-        updated[idx] = updater(updated[idx]);
-        return { items: updated, completed };
-      }
-      return { items: [...items, updater(undefined)], completed };
-    });
-  },
-
-  updateTurnDiff: (turnId, diff) => {
-    set((s) => {
-      const { timeline } = s;
-      const idx = timeline.findIndex(
-        (e) => e.kind === 'turn' && e.turnId === turnId,
-      );
-      if (idx >= 0) {
-        const entry = timeline[idx];
-        if (entry.kind === 'turn') {
-          const updated = [...timeline];
-          updated[idx] = { ...entry, diff };
-          return { timeline: updated };
-        }
-      }
-      return {};
-    });
-  },
-
-  updateTurnPlan: (turnId, plan) => {
-    set((s) => {
-      const { timeline } = s;
-      const idx = timeline.findIndex(
-        (e) => e.kind === 'turn' && e.turnId === turnId,
-      );
-      if (idx >= 0) {
-        const entry = timeline[idx];
-        if (entry.kind === 'turn') {
-          const updated = [...timeline];
-          updated[idx] = { ...entry, plan };
-          return { timeline: updated };
-        }
-      }
-      return {
-        timeline: [
-          ...timeline,
-          { kind: 'turn' as const, turnId, items: [], completed: false, plan },
-        ],
-      };
-    });
-  },
-
-  appendPlanDelta: (turnId, itemId, delta) => {
-    if (!delta) return;
-    set((s) => {
-      const { timeline } = s;
-      const idx = timeline.findIndex(
-        (e) => e.kind === 'turn' && e.turnId === turnId,
-      );
-      const patchPlan = (plan?: TurnPlanState): TurnPlanState => ({
-        explanation: plan?.explanation ?? null,
-        steps: plan?.steps ?? [],
-        planTextByItemId: {
-          ...(plan?.planTextByItemId ?? {}),
-          [itemId]: `${plan?.planTextByItemId?.[itemId] ?? ''}${delta}`,
-        },
+    ensureThreadState: (input) => {
+      set((state) => {
+        const existing = readRuntime(state, input.threadId);
+        if (existing) return {};
+        return {
+          threadsById: {
+            ...persistSelectedRuntime(state),
+            [input.threadId]: createRuntime(input),
+          },
+        };
       });
-      if (idx >= 0) {
-        const entry = timeline[idx];
-        if (entry.kind !== 'turn') return {};
-        const updated = [...timeline];
-        updated[idx] = { ...entry, plan: patchPlan(entry.plan) };
-        return { timeline: updated };
-      }
-      return { timeline: [...timeline, { kind: 'turn' as const, turnId, items: [], completed: false, plan: patchPlan() }] };
-    });
-  },
+    },
 
-  setLoading: (loading: boolean) => set({ loading }),
-
-  expandReasoning: (itemId: string) => {
-    set((s) => ({
-      expandedReasoning: new Set(s.expandedReasoning).add(itemId),
-    }));
-  },
-
-  collapseReasoning: (itemId: string) => {
-    set((s) => {
-      const next = new Set(s.expandedReasoning);
-      next.delete(itemId);
-      return { expandedReasoning: next };
-    });
-  },
-
-  addApproval: (approval) => {
-    const { pendingResolvedRequestIds } = get();
-    const requestKey = String(approval.requestId);
-    const alreadyResolved = pendingResolvedRequestIds.has(requestKey);
-    const finalApproval = alreadyResolved
-      ? { ...approval, status: 'resolved' as const }
-      : approval;
-    set((s) => {
-      const nextPending = alreadyResolved
-        ? (() => {
-            const next = new Set(s.pendingResolvedRequestIds);
-            next.delete(requestKey);
-            return next;
-          })()
-        : s.pendingResolvedRequestIds;
-      return {
-        approvals: { ...s.approvals, [approval.itemId]: finalApproval },
-        pendingResolvedRequestIds: nextPending,
-      };
-    });
-  },
-
-  resolveApproval: (itemId, decision) => {
-    set((s) => {
-      const existing = s.approvals[itemId];
-      if (!existing) return {};
-      return {
-        approvals: {
-          ...s.approvals,
-          [itemId]: { ...existing, status: decision },
-        },
-      };
-    });
-  },
-
-  setTokenUsage: (turnId, usage) => {
-    set((s) => ({
-      tokenUsageByTurn: { ...s.tokenUsageByTurn, [turnId]: usage },
-      latestTokenUsage: usage,
-    }));
-  },
-
-  setThreadStatus: (status) => {
-    set({ threadStatus: status });
-  },
-
-  setActiveTurnId: (turnId) => set({ activeTurnId: turnId }),
-
-  clearActiveTurn: () => set({ activeTurnId: null, loading: false }),
-
-  hydrateTokenUsage: (turns) => {
-    const byTurn: Record<string, ThreadTokenUsage> = {};
-    for (const turn of turns) {
-      byTurn[turn.turnId] = turn.usage;
-    }
-    set({
-      tokenUsageByTurn: byTurn,
-      latestTokenUsage: turns.at(-1)?.usage ?? null,
-    });
-  },
-
-  hydrateTurnDiffs: (turns) => {
-    set((s) => {
-      const timeline = s.timeline.map((entry) => {
-        if (entry.kind !== 'turn') return entry;
-        const match = turns.find((t) => t.turnId === entry.turnId);
-        return match ? { ...entry, diff: match.diff } : entry;
+    selectThread: (threadId) => {
+      set((state) => {
+        const threadsById = persistSelectedRuntime(state);
+        if (!threadId) {
+          return {
+            ...selectedFields(null),
+            selectedThreadId: null,
+            threadsById,
+          };
+        }
+        const runtime = threadsById[threadId] ?? createRuntime({ threadId });
+        return {
+          ...selectedFields(runtime),
+          selectedThreadId: threadId,
+          threadsById: { ...threadsById, [threadId]: runtime },
+        };
       });
-      return { timeline };
-    });
-  },
+    },
 
-  resolveApprovalByRequestId: (requestId) => {
-    const requestKey = String(requestId);
-    const { approvals } = get();
-    const entry = Object.values(approvals).find(
-      (a) => String(a.requestId) === requestKey,
-    );
-    if (entry) {
-      set((s) => ({
-        approvals: {
-          ...s.approvals,
-          [entry.itemId]: { ...entry, status: 'resolved' },
-        },
-      }));
-    } else {
-      set((s) => ({
-        pendingResolvedRequestIds: new Set(s.pendingResolvedRequestIds).add(requestKey),
-      }));
-    }
-  },
-}));
+    resubscribeAll: () => {
+      const socket = getSocket();
+      for (const threadId of get().subscribedThreadIds) {
+        socket.emit('thread.subscribe', { threadId });
+      }
+    },
 
-export type { ThreadDto, TurnDto };
+    unsubscribeThread: (threadId) => {
+      getSocket().emit('thread.unsubscribe', { threadId });
+      set((state) => {
+        const subscribedThreadIds = new Set(state.subscribedThreadIds);
+        subscribedThreadIds.delete(threadId);
+        return { subscribedThreadIds };
+      });
+    },
+
+    getThreadTitle: (threadId) => {
+      const runtime = readRuntime(get(), threadId);
+      return runtime?.threadTitle ?? threadId.slice(0, 8);
+    },
+
+    getThreadRuntime: (threadId) => readRuntime(get(), threadId),
+    isThreadLoading: (threadId) => readRuntime(get(), threadId)?.loading ?? false,
+    hasPendingApproval: (threadId) => hasPendingApproval(readRuntime(get(), threadId)),
+
+    setActiveThread: (threadId, cwd, title) => {
+      get().ensureThreadState({ threadId, cwd, title, mode: 'live' });
+      get().selectThread(threadId);
+      getSocket().emit('thread.subscribe', { threadId });
+      set((state) => ({ subscribedThreadIds: new Set(state.subscribedThreadIds).add(threadId) }));
+    },
+
+    setReadOnlyThread: (thread) => {
+      const title = thread.name ?? thread.preview ?? null;
+      get().unsubscribeThread(thread.id);
+      get().ensureThreadState({ threadId: thread.id, cwd: thread.cwd, title, mode: 'readOnly' });
+      get().selectThread(thread.id);
+      get().hydrateTimelineForThread(thread.id, thread.turns ?? [], thread.cwd);
+      get().setThreadStatusForThread(thread.id, thread.status as ThreadStatusType);
+    },
+
+    clearThread: () => get().selectThread(null),
+
+    hydrateTimeline: (turns, cwd) => {
+      const threadId = selectedThread();
+      if (threadId) get().hydrateTimelineForThread(threadId, turns, cwd);
+    },
+
+    setThreadTitle: (title) => {
+      const threadId = selectedThread();
+      if (threadId) get().setThreadTitleForThread(threadId, title);
+    },
+
+    addUserMessage: (text) => {
+      const threadId = selectedThread();
+      if (!threadId) return;
+      applyThreadUpdate(threadId, (runtime) => ({
+        ...runtime,
+        timeline: [...runtime.timeline, { kind: 'user' as const, content: text }],
+        loading: true,
+      }));
+    },
+
+    addSystemError: (message) => {
+      const threadId = selectedThread();
+      if (threadId) get().addSystemErrorForThread(threadId, message);
+    },
+
+    addSystemMessage: (message, severity = 'info') => {
+      const threadId = selectedThread();
+      if (threadId) get().addSystemMessageForThread(threadId, message, severity);
+    },
+
+    toggleReasoning: (itemId) => {
+      const threadId = selectedThread();
+      if (!threadId) return;
+      applyThreadUpdate(threadId, (runtime) => {
+        const expandedReasoning = new Set(runtime.expandedReasoning);
+        if (expandedReasoning.has(itemId)) expandedReasoning.delete(itemId);
+        else expandedReasoning.add(itemId);
+        return { ...runtime, expandedReasoning };
+      });
+    },
+
+    updateCurrentTurn: (turnId, updater) => {
+      const threadId = selectedThread();
+      if (threadId) get().updateCurrentTurnForThread(threadId, turnId, updater);
+    },
+
+    updateTurnItem: (turnId, itemId, updater) => {
+      const threadId = selectedThread();
+      if (threadId) get().updateTurnItemForThread(threadId, turnId, itemId, updater);
+    },
+
+    updateTurnDiff: (turnId, diff) => {
+      const threadId = selectedThread();
+      if (threadId) get().updateTurnDiffForThread(threadId, turnId, diff);
+    },
+
+    updateTurnPlan: (turnId, plan) => {
+      const threadId = selectedThread();
+      if (threadId) get().updateTurnPlanForThread(threadId, turnId, plan);
+    },
+
+    appendPlanDelta: (turnId, itemId, delta) => {
+      const threadId = selectedThread();
+      if (threadId) get().appendPlanDeltaForThread(threadId, turnId, itemId, delta);
+    },
+
+    setLoading: (loading) => {
+      const threadId = selectedThread();
+      if (threadId) get().setLoadingForThread(threadId, loading);
+    },
+
+    expandReasoning: (itemId) => {
+      const threadId = selectedThread();
+      if (!threadId) return;
+      applyThreadUpdate(threadId, (runtime) => ({
+        ...runtime,
+        expandedReasoning: new Set(runtime.expandedReasoning).add(itemId),
+      }));
+    },
+
+    collapseReasoning: (itemId) => {
+      const threadId = selectedThread();
+      if (!threadId) return;
+      applyThreadUpdate(threadId, (runtime) => {
+        const expandedReasoning = new Set(runtime.expandedReasoning);
+        expandedReasoning.delete(itemId);
+        return { ...runtime, expandedReasoning };
+      });
+    },
+
+    addApproval: (approval) => get().addApprovalForThread(approval.threadId, approval),
+
+    resolveApproval: (itemId, decision) => {
+      const threadId = selectedThread();
+      if (threadId) get().resolveApprovalForThread(threadId, itemId, decision);
+    },
+
+    setTokenUsage: (turnId, usage) => {
+      const threadId = selectedThread();
+      if (threadId) get().setTokenUsageForThread(threadId, turnId, usage);
+    },
+
+    setThreadStatus: (status) => {
+      const threadId = selectedThread();
+      if (threadId) get().setThreadStatusForThread(threadId, status);
+    },
+
+    setActiveTurnId: (turnId) => {
+      const threadId = selectedThread();
+      if (threadId) get().setActiveTurnIdForThread(threadId, turnId);
+    },
+
+    clearActiveTurn: () => {
+      const threadId = selectedThread();
+      if (threadId) get().clearActiveTurnForThread(threadId);
+    },
+
+    hydrateTokenUsage: (turns) => {
+      const threadId = selectedThread();
+      if (threadId) get().hydrateTokenUsageForThread(threadId, turns);
+    },
+
+    hydrateTurnDiffs: (turns) => {
+      const threadId = selectedThread();
+      if (threadId) get().hydrateTurnDiffsForThread(threadId, turns);
+    },
+
+    resolveApprovalByRequestId: (requestId) => {
+      const threadId = selectedThread();
+      if (threadId) get().resolveApprovalByRequestIdForThread(threadId, requestId);
+    },
+
+    hydrateTimelineForThread: (threadId, turns, cwd) => {
+      applyThreadUpdate(threadId, (runtime) => ({
+        ...runtime,
+        threadCwd: cwd ?? runtime.threadCwd,
+        loading: false,
+        timeline: turnsToTimeline(turns),
+        activeTurnId: null,
+        hydrated: true,
+      }));
+    },
+
+    hydrateTokenUsageForThread: (threadId, turns) => {
+      const byTurn: Record<string, ThreadTokenUsage> = {};
+      for (const turn of turns) byTurn[turn.turnId] = turn.usage;
+      applyThreadUpdate(threadId, (runtime) => ({
+        ...runtime,
+        tokenUsageByTurn: byTurn,
+        latestTokenUsage: turns.at(-1)?.usage ?? null,
+      }));
+    },
+
+    hydrateTurnDiffsForThread: (threadId, turns) => {
+      applyThreadUpdate(threadId, (runtime) => ({
+        ...runtime,
+        timeline: runtime.timeline.map((entry) => {
+          if (entry.kind !== 'turn') return entry;
+          const match = turns.find((turn) => turn.turnId === entry.turnId);
+          return match ? { ...entry, diff: match.diff } : entry;
+        }),
+      }));
+    },
+
+    updateCurrentTurnForThread: (threadId, turnId, updater) => {
+      applyThreadUpdate(threadId, (runtime) => updateRuntimeCurrentTurn(runtime, turnId, updater));
+    },
+
+    updateTurnItemForThread: (threadId, turnId, itemId, updater) => {
+      applyThreadUpdate(threadId, (runtime) => updateRuntimeTurnItem(runtime, turnId, itemId, updater));
+    },
+
+    updateTurnDiffForThread: (threadId, turnId, diff) => {
+      applyThreadUpdate(threadId, (runtime) => updateRuntimeDiff(runtime, turnId, diff));
+    },
+
+    updateTurnPlanForThread: (threadId, turnId, plan) => {
+      applyThreadUpdate(threadId, (runtime) => updateRuntimePlan(runtime, turnId, plan));
+    },
+
+    appendPlanDeltaForThread: (threadId, turnId, itemId, delta) => {
+      if (!delta) return;
+      applyThreadUpdate(threadId, (runtime) => {
+        const patchPlan = (plan?: TurnPlanState): TurnPlanState => ({
+          explanation: plan?.explanation ?? null,
+          steps: plan?.steps ?? [],
+          planTextByItemId: {
+            ...(plan?.planTextByItemId ?? {}),
+            [itemId]: `${plan?.planTextByItemId?.[itemId] ?? ''}${delta}`,
+          },
+        });
+        const idx = runtime.timeline.findIndex(
+          (entry) => entry.kind === 'turn' && entry.turnId === turnId,
+        );
+        if (idx >= 0) {
+          const entry = runtime.timeline[idx];
+          if (entry.kind !== 'turn') return runtime;
+          const timeline = [...runtime.timeline];
+          timeline[idx] = { ...entry, plan: patchPlan(entry.plan) };
+          return { ...runtime, timeline };
+        }
+        return {
+          ...runtime,
+          timeline: [
+            ...runtime.timeline,
+            { kind: 'turn' as const, turnId, items: [], completed: false, plan: patchPlan() },
+          ],
+        };
+      });
+    },
+
+    setLoadingForThread: (threadId, loading) => {
+      applyThreadUpdate(threadId, (runtime) => ({ ...runtime, loading }));
+    },
+
+    addApprovalForThread: (threadId, approval) => {
+      applyThreadUpdate(threadId, (runtime) => {
+        const requestKey = String(approval.requestId);
+        const alreadyResolved = runtime.pendingResolvedRequestIds.has(requestKey);
+        const finalApproval = alreadyResolved
+          ? { ...approval, status: 'resolved' as const }
+          : approval;
+        const pendingResolvedRequestIds = new Set(runtime.pendingResolvedRequestIds);
+        if (alreadyResolved) pendingResolvedRequestIds.delete(requestKey);
+        return {
+          ...runtime,
+          approvals: { ...runtime.approvals, [approval.itemId]: finalApproval },
+          pendingResolvedRequestIds,
+        };
+      });
+    },
+
+    resolveApprovalForThread: (threadId, itemId, decision) => {
+      applyThreadUpdate(threadId, (runtime) => {
+        const existing = runtime.approvals[itemId];
+        if (!existing) return runtime;
+        return {
+          ...runtime,
+          approvals: {
+            ...runtime.approvals,
+            [itemId]: { ...existing, status: decision },
+          },
+        };
+      });
+    },
+
+    setTokenUsageForThread: (threadId, turnId, usage) => {
+      applyThreadUpdate(threadId, (runtime) => ({
+        ...runtime,
+        tokenUsageByTurn: { ...runtime.tokenUsageByTurn, [turnId]: usage },
+        latestTokenUsage: usage,
+      }));
+    },
+
+    setThreadStatusForThread: (threadId, status) => {
+      applyThreadUpdate(threadId, (runtime) => ({ ...runtime, threadStatus: status }));
+    },
+
+    setActiveTurnIdForThread: (threadId, turnId) => {
+      applyThreadUpdate(threadId, (runtime) => ({ ...runtime, activeTurnId: turnId }));
+    },
+
+    clearActiveTurnForThread: (threadId) => {
+      applyThreadUpdate(threadId, (runtime) => ({ ...runtime, activeTurnId: null, loading: false }));
+    },
+
+    addSystemMessageForThread: (threadId, message, severity = 'info') => {
+      applyThreadUpdate(threadId, (runtime) => ({
+        ...runtime,
+        timeline: [
+          ...runtime.timeline,
+          { kind: 'system' as const, content: message, severity },
+        ],
+      }));
+    },
+
+    addSystemErrorForThread: (threadId, message) => {
+      applyThreadUpdate(threadId, (runtime) => ({
+        ...runtime,
+        timeline: [
+          ...runtime.timeline,
+          { kind: 'system' as const, content: `Error: ${message}`, severity: 'error' as const },
+        ],
+        loading: false,
+      }));
+    },
+
+    setThreadTitleForThread: (threadId, title) => {
+      applyThreadUpdate(threadId, (runtime) => ({ ...runtime, threadTitle: title }));
+    },
+
+    resolveApprovalByRequestIdForThread: (threadId, requestId) => {
+      const requestKey = String(requestId);
+      applyThreadUpdate(threadId, (runtime) => {
+        const entry = Object.values(runtime.approvals).find(
+          (approval) => String(approval.requestId) === requestKey,
+        );
+        if (entry) {
+          return {
+            ...runtime,
+            approvals: {
+              ...runtime.approvals,
+              [entry.itemId]: { ...entry, status: 'resolved' },
+            },
+          };
+        }
+        return {
+          ...runtime,
+          pendingResolvedRequestIds: new Set(runtime.pendingResolvedRequestIds).add(requestKey),
+        };
+      });
+    },
+  };
+});
+
+/** Selects data from the currently visible thread runtime. */
+export function useSelectedThreadState<T>(selector: (runtime: ThreadRuntimeState | null) => T): T {
+  return useTimelineStore((state) => selector(state.threadId ? readRuntime(state, state.threadId) : null));
+}
+
+/** Selects data from a specific thread runtime. */
+export function useThreadState<T>(
+  threadId: string | null | undefined,
+  selector: (runtime: ThreadRuntimeState | undefined) => T,
+): T {
+  return useTimelineStore((state) =>
+    selector(threadId ? state.threadsById[threadId] : undefined),
+  );
+}

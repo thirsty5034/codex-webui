@@ -19,6 +19,7 @@ import { Server, Socket } from 'socket.io';
 import { AuthService } from '../auth/auth.service';
 import { CodexProcessManager } from '../codex/codex-process-manager.service';
 import type { ServerNotification, ServerRequest } from '../codex/codex-schema';
+import { PendingApprovalsService } from '../pending-approvals/pending-approvals.service';
 import { ActiveThreadRegistryService } from './active-thread-registry.service';
 
 export type CodexSocketLifecycleEvent =
@@ -45,6 +46,7 @@ export class ThreadsGateway
     private readonly codexManager: CodexProcessManager,
     private readonly authService: AuthService,
     private readonly activeThreads: ActiveThreadRegistryService,
+    private readonly pendingApprovals: PendingApprovalsService,
   ) {}
 
   afterInit(): void {
@@ -116,6 +118,10 @@ export class ThreadsGateway
    * Extracts threadId from notification params and emits to the room.
    */
   private handleCodexNotification(notification: ServerNotification): void {
+    if (notification.method === 'serverRequest/resolved') {
+      this.pendingApprovals.markResolved(notification);
+    }
+
     const params = notification.params as Record<string, unknown> | undefined;
     const threadId = params?.['threadId'] as string | undefined;
 
@@ -138,6 +144,8 @@ export class ThreadsGateway
     const threadId = params?.['threadId'] as string | undefined;
     const requestId = (request as unknown as { id: number | string }).id;
 
+    this.pendingApprovals.recordServerRequest(request);
+
     const target = threadId
       ? this.server.to(`thread:${threadId}`)
       : this.server;
@@ -151,15 +159,18 @@ export class ThreadsGateway
 
   /**
    * Client responds to a server-initiated request (e.g. approval decision).
+   * Kept for backward compatibility; REST responses use persisted CAS semantics.
    */
   @SubscribeMessage('codex.serverResponse')
   handleServerResponse(
+    @ConnectedSocket() client: Socket,
     @MessageBody() data: { id: number | string; result: unknown },
   ): void {
-    const client = this.codexManager.getClient();
-    if (client) {
-      client.respondToServerRequest(data.id, data.result);
-    }
+    this.pendingApprovals.respondToRequest(
+      String(data.id),
+      data.result,
+      client.id,
+    );
   }
 
   /** Emits WebUI lifecycle events that are not app-server notifications. */
