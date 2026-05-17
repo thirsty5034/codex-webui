@@ -93,6 +93,18 @@
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
   },
-  "pnpm": {},
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@nestjs/core",
+      "@scarf/scarf",
+      "better-sqlite3",
+      "esbuild",
+      "node-pty",
+      "unrs-resolver"
+    ],
+    "overrides": {
+      "fastify": "5.8.5"
+    }
+  },
   "packageManager": "pnpm@10.18.3"
 }
