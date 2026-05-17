@@ -2,8 +2,7 @@
 FROM node:22-bookworm-slim AS frontend-builder
 RUN npm install -g pnpm@10.18.3
 WORKDIR /app/web
-COPY pnpm-workspace.yaml ./
-COPY web/package.json web/pnpm-lock.yaml* ./
+COPY web/package.json web/pnpm-lock.yaml* web/pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY web/ ./
 RUN pnpm build

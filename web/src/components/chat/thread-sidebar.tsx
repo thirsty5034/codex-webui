@@ -331,7 +331,7 @@ export function ThreadSidebar() {
         </button>
         <button
           type="button"
-          onClick={() => void navigate({ to: '/integrations' })}
+          onClick={() => void navigate({ to: '/integrations', search: { tab: 'plugins' } })}
           className={cn(
             'flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors',
             activeView === 'integrations'
@@ -374,7 +374,7 @@ export function ThreadSidebar() {
         </Button>
       </div>
 
-      <ScrollArea className="min-h-0 flex-1 px-2 [&_[data-slot=scroll-area-viewport]>div]:!block">
+      <ScrollArea className="min-h-0 flex-1 px-2 [&_[data-slot=scroll-area-viewport]>div]:block!">
         {sidebarView.type === 'overview' ? (
           <WorkspaceOverview
             archivedThreads={archivedThreads}
