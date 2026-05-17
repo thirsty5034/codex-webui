@@ -1,5 +1,8 @@
 # Codex WebUI
 
+[![GHCR](https://img.shields.io/badge/GHCR-codex--webui-blue?logo=github)](https://github.com/LimLLL/codex-webui/pkgs/container/codex-webui)
+[![Docker](https://img.shields.io/badge/docker-multi--arch-brightgreen?logo=docker)](./Dockerfile)
+
 给 [OpenAI Codex CLI](https://github.com/openai/codex) 做的 Web 前端。把命令行交互搬到浏览器里，支持多线程并发、文件管理、终端、插件市场等。
 
 后端用 NestJS 通过 stdio JSON-RPC 和 `codex app-server` 通信，前端 React + Vite，中间用 Socket.IO 实时推送。
@@ -73,17 +76,44 @@
 - pnpm >= 9
 - [Codex CLI](https://github.com/openai/codex) 已安装并可用
 
+### Docker 部署（推荐）
+
+直接从 GHCR 拉取镜像，无需本地构建：
+
+```bash
+# 创建 .env
+cat <<EOF > .env
+WEBUI_API_KEY=your-secret-key
+OPENAI_API_KEY=sk-xxx
+EOF
+
+# 启动（自动拉取多架构镜像）
+docker compose up -d
+```
+
+或者手动运行：
+
+```bash
+docker run -d --name codex-webui \
+  -p 8172:8172 \
+  -e WEBUI_API_KEY=your-secret-key \
+  -e OPENAI_API_KEY=sk-xxx \
+  -v codex_root:/root \
+  -v codex_workspaces:/workspaces \
+  ghcr.io/limlll/codex-webui:latest
+```
+
+服务运行在 `http://localhost:8172`。
+
+> `/root` 卷持久化 codex/claude/MCP 配置及运行时工具链。首次启动自动释放内置 seed。
+
 ### 本地开发
 
 ```bash
-# 克隆项目
-git clone https://github.com/your-username/codex-webui.git
+git clone https://github.com/LimLLL/codex-webui.git
 cd codex-webui
-
-# 安装依赖
 pnpm install
 
-# 配置环境变量
 cp .env.example .env
 # 编辑 .env，至少设置 WEBUI_API_KEY
 
@@ -96,19 +126,6 @@ cd web && pnpm dev
 
 打开 `http://localhost:5173` 即可使用。
 
-### Docker 部署
-
-```bash
-# 设置环境变量
-echo "WEBUI_API_KEY=your-secret-key" > .env
-echo "OPENAI_API_KEY=sk-xxx" >> .env
-
-# 启动
-docker compose up -d
-```
-
-服务运行在 `http://localhost:8172`。
-
 ## 环境变量
 
 | 变量 | 必填 | 默认值 | 说明 |
@@ -118,13 +135,13 @@ docker compose up -d
 | `CODEX_BIN` | 否 | `codex` | codex CLI 可执行文件路径 |
 | `CODEX_HOME` | 否 | `~/.codex` | Codex 主目录 |
 | `WORKSPACE_ROOTS` | 否 | — | 逗号分隔的允许访问目录 |
-| `LOG_LEVEL` | 否 | `info` / `debug` | Pino 日志级别 |
+| `LOG_LEVEL` | 否 | `info` | Pino 日志级别 |
 | `WEBUI_DB_PATH` | 否 | `CODEX_HOME/codex-webui.sqlite` | SQLite 数据库路径 |
-| `WEBUI_UPLOAD_MAX_BYTES` | 否 | `104857600` | 上传文件大小限制（默认 100MB） |
-| `DEFAULT_TERMINAL_CWD` | 否 | — | 终端默认工作目录，路径无效时启动报错 |
+| `WEBUI_UPLOAD_MAX_BYTES` | 否 | `104857600` | 上传文件大小限制（100MB） |
+| `DEFAULT_TERMINAL_CWD` | 否 | — | 终端默认工作目录 |
 | `WEBUI_TERMINAL_MAX_SESSIONS` | 否 | `10` | 最大并发终端会话数（1-50） |
-| `WEBUI_TERMINAL_GRACE_MS` | 否 | `45000` | 断开连接后终端保活时长（10s-300s） |
-| `WEBUI_TERMINAL_SCROLLBACK` | 否 | `5000` | 终端回滚缓冲区行数（100-50000） |
+| `WEBUI_TERMINAL_GRACE_MS` | 否 | `45000` | 断开连接后终端保活时长 |
+| `WEBUI_TERMINAL_SCROLLBACK` | 否 | `5000` | 终端回滚缓冲区行数 |
 
 ## 项目结构
 
@@ -144,7 +161,7 @@ docker compose up -d
 │       ├── stores/       # Zustand 状态管理
 │       ├── hooks/        # 自定义 hooks
 │       └── generated/    # Hey API SDK（自动生成）
-├── Dockerfile
+├── Dockerfile            # 多阶段构建 + seed root
 └── docker-compose.yml
 ```
 
@@ -160,3 +177,7 @@ pnpm db:migrate         # 执行迁移
 cd web && pnpm dev      # 前端开发模式
 cd web && pnpm build    # 前端构建（输出到 public/）
 ```
+
+## License
+
+[AGPL-3.0](./LICENSE)

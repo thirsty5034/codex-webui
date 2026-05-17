@@ -9,25 +9,31 @@ RUN pnpm build
 
 # ── Stage 2: Backend build ───────────────────────────────────────────
 FROM node:22-bookworm-slim AS backend-builder
-# node-pty requires native compilation tools
 RUN apt-get update \
   && apt-get install -y --no-install-recommends python3 make g++ \
   && rm -rf /var/lib/apt/lists/*
 RUN corepack enable && corepack prepare pnpm@latest --activate
-# Install pinned Codex CLI for schema generation during build
-ARG CODEX_CLI_VERSION=0.123.0
-RUN npm install -g @openai/codex@${CODEX_CLI_VERSION}
 WORKDIR /app
 COPY package.json pnpm-lock.yaml* ./
 RUN pnpm install --frozen-lockfile
 COPY src/ ./src/
 COPY tsconfig*.json nest-cli.json ./
+# Generate codex schema types (needs codex CLI)
+ARG CODEX_CLI_VERSION=0.123.0
+RUN npm install -g @openai/codex@${CODEX_CLI_VERSION}
 COPY --from=frontend-builder /app/public ./public/
 RUN pnpm build
 
 # ── Stage 3: Runtime ─────────────────────────────────────────────────
 FROM debian:trixie-slim AS runtime
-# Runtime dependencies: git, bash (terminal), node-pty native rebuild deps
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV HOME=/root
+ENV MISE_YES=1
+ENV NODE_ENV=production
+ENV PATH="/root/.local/bin:/root/.local/share/mise/shims:/usr/local/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+# System dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
@@ -60,6 +66,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     xz-utils \
  && rm -rf /var/lib/apt/lists/*
 
+# Install mise + runtimes
 RUN curl -fsSL https://mise.run | sh
 
 RUN grep -q 'mise activate bash' /root/.bashrc 2>/dev/null || \
@@ -73,38 +80,73 @@ RUN node --version \
  && python --version \
  && mise --version
 
+# Install global npm tools (codex + MCP utilities)
+ARG CODEX_CLI_VERSION=0.123.0
 RUN npm install -g \
-    @openai/codex@latest \
+    @openai/codex@${CODEX_CLI_VERSION} \
     mcp-safe-proxy \
     mcp-remote
 
-# Install pinned Codex CLI version (must match builder for schema compat)
-ARG CODEX_CLI_VERSION=0.123.0
-RUN npm install -g @openai/codex@${CODEX_CLI_VERSION}
-
-WORKDIR /app
-ENV NODE_ENV=production
-
-# Copy package manifests and install production dependencies
+# Enable corepack for pnpm (needed for native addon rebuild)
 RUN corepack enable && corepack prepare pnpm@latest --activate
+
+# Create app directories
+RUN mkdir -p /root/.codex /root/.claude /workspaces /app/logs
+
+# ── App installation ─────────────────────────────────────────────────
+WORKDIR /app
+
+# Install production dependencies and rebuild native addons
 COPY package.json pnpm-lock.yaml* ./
 RUN pnpm install --frozen-lockfile --prod
-# Rebuild native addons for this runtime environment
 RUN npx --yes node-gyp rebuild --directory=node_modules/node-pty || true \
   && npx --yes node-gyp rebuild --directory=node_modules/better-sqlite3 || true
 
-# Copy built assets and drizzle migrations
+# Copy built assets and migrations
 COPY --from=backend-builder /app/dist ./dist/
 COPY --from=backend-builder /app/public ./public/
 COPY drizzle/ ./drizzle/
 
-# Create volume mount points and set ownership for non-root user
-RUN mkdir -p /workspaces /codex-home /app/logs \
-  && chown -R node:node /workspaces /codex-home /app/logs /app
-USER node
+# ── Seed root tarball ────────────────────────────────────────────────
+# Captures mise, node, codex, mcp-tools, bashrc, configs
+RUN tar -C /root -czf /opt/root-seed.tar.gz .
+
+# ── Entrypoint ───────────────────────────────────────────────────────
+RUN cat > /usr/local/bin/entrypoint.sh <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_SEED="/opt/root-seed.tar.gz"
+ROOT_MARKER="/root/.codex-webui-initialized"
+
+is_root_empty() {
+  find /root -mindepth 1 -maxdepth 1 -print -quit | grep -q . && return 1
+  return 0
+}
+
+if is_root_empty; then
+  echo "[entrypoint] /root is empty, restoring seed data..."
+  tar -C /root -xzf "${ROOT_SEED}"
+  touch "${ROOT_MARKER}"
+elif [ ! -e "${ROOT_MARKER}" ] && [ ! -d /root/.local/share/mise ]; then
+  echo "[entrypoint] /root has data but mise seed is missing; leaving unchanged."
+  echo "[entrypoint] Clear the host volume and restart if this is unintended."
+else
+  echo "[entrypoint] /root already initialized."
+fi
+
+# Ensure directories exist (in case volume is pre-populated but partial)
+mkdir -p /root/.codex /root/.claude /workspaces /app/logs
+
+exec "$@"
+EOF
+
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 EXPOSE 8172
-HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD curl -sf -H "Authorization: Bearer ${WEBUI_API_KEY}" http://localhost:8172/api/status || exit 1
 
-CMD ["node", "dist/main.js"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+CMD ["node", "/app/dist/main.js"]

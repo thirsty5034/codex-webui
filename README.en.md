@@ -1,5 +1,8 @@
 # Codex WebUI
 
+[![GHCR](https://img.shields.io/badge/GHCR-codex--webui-blue?logo=github)](https://github.com/LimLLL/codex-webui/pkgs/container/codex-webui)
+[![Docker](https://img.shields.io/badge/docker-multi--arch-brightgreen?logo=docker)](./Dockerfile)
+
 A web frontend for [OpenAI Codex CLI](https://github.com/openai/codex). It brings the CLI experience into the browser with multi-thread concurrency, a file manager, a shared terminal, and plugin management.
 
 The backend (NestJS) talks to `codex app-server` over stdio JSON-RPC and pushes real-time events to a React frontend via Socket.IO.
@@ -10,23 +13,45 @@ The backend (NestJS) talks to `codex app-server` over stdio JSON-RPC and pushes 
 
 ## Features
 
-**Chat & Threads** — Run multiple threads concurrently, grouped by workspace. Archive, fork, rollback, rename. Markdown + Shiki highlighting, `@` file mentions, image paste, steer/stop running turns.
+**Chat & Threads**
+- Run multiple threads concurrently, grouped by workspace
+- Archive, fork, rollback, rename threads
+- Markdown rendering + Shiki syntax highlighting
+- `@` file mentions, image paste
+- Steer/stop running turns
 
-**Approval Flow** — In-page cards for command execution and file change approvals. Security policy switching. Multi-device CAS conflict prevention.
+**Approval Flow**
+- In-page cards for command execution and file change approvals
+- Security policy switching (sandbox levels)
+- Multi-device CAS conflict prevention
 
-**File Management** — Tree browser with drag-and-drop, Monaco code viewer, Git diff split view, upload/download/rename/copy/move.
+**File Management**
 
 ![File Management](./images/sidebar-file-en.png)
 
-**Terminal** — Multi-tab shared terminal (node-pty + xterm.js) with reconnect and headless VT replay.
+- Tree browser with drag-and-drop (dnd-kit)
+- Monaco code viewer
+- Git diff split view (@git-diff-view)
+- Upload / download / rename / copy / move / mkdir
+
+**Terminal**
 
 ![Terminal](./images/sidebar-terminal-en.png)
+
+- Multi-tab shared terminal (node-pty + xterm.js)
+- Reconnect with no output loss
+- Headless VT replay
 
 **Integrations & Plugins**
 
 ![Integrations](./images/side-integration-en.png)
 
-**Other** — JWT + API Key auth, plugin/MCP server management, dark/light theme, i18n (en/zh-CN), responsive layout, Docker deployment.
+**Other**
+- JWT + API Key authentication
+- Plugin / MCP server management
+- Dark / light theme, i18n (en / zh-CN)
+- Responsive layout (mobile + tablet)
+- Docker deployment
 
 ## Tech Stack
 
@@ -51,10 +76,41 @@ Server
 - pnpm >= 9
 - [Codex CLI](https://github.com/openai/codex) installed and available in PATH
 
+### Docker Deployment (Recommended)
+
+Pull the pre-built multi-arch image from GHCR:
+
+```bash
+# Create .env
+cat <<EOF > .env
+WEBUI_API_KEY=your-secret-key
+OPENAI_API_KEY=sk-xxx
+EOF
+
+# Start (auto-pulls multi-arch image)
+docker compose up -d
+```
+
+Or run directly:
+
+```bash
+docker run -d --name codex-webui \
+  -p 8172:8172 \
+  -e WEBUI_API_KEY=your-secret-key \
+  -e OPENAI_API_KEY=sk-xxx \
+  -v codex_root:/root \
+  -v codex_workspaces:/workspaces \
+  ghcr.io/limlll/codex-webui:latest
+```
+
+The app runs at `http://localhost:8172`.
+
+> The `/root` volume persists codex/claude/MCP configs and the runtime toolchain. The built-in seed is automatically extracted on first start.
+
 ### Local Development
 
 ```bash
-git clone https://github.com/your-username/codex-webui.git
+git clone https://github.com/LimLLL/codex-webui.git
 cd codex-webui
 pnpm install
 
@@ -70,32 +126,22 @@ cd web && pnpm dev
 
 Open `http://localhost:5173`.
 
-### Docker
-
-```bash
-echo "WEBUI_API_KEY=your-secret-key" > .env
-echo "OPENAI_API_KEY=sk-xxx" >> .env
-docker compose up -d
-```
-
-The app runs at `http://localhost:8172`.
-
 ## Environment Variables
 
-| Variable | Required | Default | Description |
-|----------|:--------:|---------|-------------|
-| `WEBUI_API_KEY` | Yes | — | Login key; also used to derive JWT signing secret |
-| `PORT` | No | `8172` | Backend listen port |
-| `CODEX_BIN` | No | `codex` | Path to codex CLI binary |
-| `CODEX_HOME` | No | `~/.codex` | Codex home directory |
-| `WORKSPACE_ROOTS` | No | — | Comma-separated allowed directories |
-| `LOG_LEVEL` | No | `info` / `debug` | Pino log level |
-| `WEBUI_DB_PATH` | No | `CODEX_HOME/codex-webui.sqlite` | SQLite database path |
-| `WEBUI_UPLOAD_MAX_BYTES` | No | `104857600` | Max upload file size (default 100MB) |
-| `DEFAULT_TERMINAL_CWD` | No | — | Default terminal cwd; fail-fast if invalid |
-| `WEBUI_TERMINAL_MAX_SESSIONS` | No | `10` | Max concurrent terminal sessions (1-50) |
-| `WEBUI_TERMINAL_GRACE_MS` | No | `45000` | Grace period before killing detached terminals (10s-300s) |
-| `WEBUI_TERMINAL_SCROLLBACK` | No | `5000` | Terminal scrollback buffer lines (100-50000) |
+| Variable                       | Required | Default                        | Description                                    |
+| ------------------------------ | :------: | ------------------------------ | ---------------------------------------------- |
+| `WEBUI_API_KEY`                |   Yes    | —                              | Login key; also derives JWT signing secret      |
+| `PORT`                         |    No    | `8172`                         | Backend listen port                            |
+| `CODEX_BIN`                    |    No    | `codex`                        | Path to codex CLI binary                       |
+| `CODEX_HOME`                   |    No    | `~/.codex`                     | Codex home directory                           |
+| `WORKSPACE_ROOTS`              |    No    | —                              | Comma-separated allowed directories            |
+| `LOG_LEVEL`                    |    No    | `info`                         | Pino log level                                 |
+| `WEBUI_DB_PATH`                |    No    | `CODEX_HOME/codex-webui.sqlite`| SQLite database path                           |
+| `WEBUI_UPLOAD_MAX_BYTES`       |    No    | `104857600`                    | Max upload file size (100MB)                   |
+| `DEFAULT_TERMINAL_CWD`         |    No    | —                              | Default terminal working directory             |
+| `WEBUI_TERMINAL_MAX_SESSIONS`  |    No    | `10`                           | Max concurrent terminal sessions (1-50)        |
+| `WEBUI_TERMINAL_GRACE_MS`      |    No    | `45000`                        | Grace period before killing detached terminals |
+| `WEBUI_TERMINAL_SCROLLBACK`    |    No    | `5000`                         | Terminal scrollback buffer lines                |
 
 ## Project Structure
 
@@ -115,7 +161,7 @@ The app runs at `http://localhost:8172`.
 │       ├── stores/       # Zustand state management
 │       ├── hooks/        # Custom hooks
 │       └── generated/    # Hey API SDK (auto-generated)
-├── Dockerfile
+├── Dockerfile            # Multi-stage build + seed root
 └── docker-compose.yml
 ```
 
@@ -131,3 +177,7 @@ pnpm db:migrate         # Run migrations
 cd web && pnpm dev      # Frontend dev server
 cd web && pnpm build    # Build frontend (outputs to public/)
 ```
+
+## License
+
+[AGPL-3.0](./LICENSE)
