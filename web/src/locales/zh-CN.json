@@ -1,5 +1,12 @@
 {
   "Loading...": "加载中...",
+  "Navigation": "导航",
+  "Open navigation": "打开导航",
+  "Collapse sidebar": "收起侧边栏",
+  "Expand sidebar": "展开侧边栏",
+  "More actions": "更多操作",
+  "Session panel": "会话面板",
+  "File explorer": "文件浏览器",
   "Delete": "删除",
   "Terminal": "终端",
   "Files": "文件",

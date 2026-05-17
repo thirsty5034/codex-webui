@@ -21,6 +21,7 @@ import { useFilesStore } from '@/stores/files-store';
 import { useLayoutStore } from '@/stores/layout-store';
 import { useTimelineStore } from '@/stores/timeline-store';
 import { useThemeStore } from '@/stores/theme-store';
+import { cn } from '@/lib/utils';
 import { clearApiToken } from '@/auth-token';
 import { getSocket, resetSocket } from '@/socket';
 import { filesGetRoots, filesAddRoot } from '@/generated/api';
@@ -246,15 +247,20 @@ export function AuthenticatedLayout() {
     if (isDesktop) setSidebarOpen(false);
   }, [isDesktop, setSidebarOpen]);
 
-  const showInlineSidebar = isDesktop && !desktopSidebarCollapsed;
-
   return (
     <TooltipProvider>
       <div className="flex h-full overflow-hidden bg-background">
-        {/* Desktop: inline sidebar */}
-        {showInlineSidebar && (
-          <aside className="relative z-10 flex w-64 shrink-0 flex-col border-r border-[var(--glass-border-subtle)]">
-            <ThreadSidebar />
+        {/* Desktop: inline sidebar with collapse animation */}
+        {isDesktop && (
+          <aside
+            className={cn(
+              'relative z-10 shrink-0 overflow-hidden border-r border-[var(--glass-border-subtle)] transition-[width] duration-200 ease-in-out',
+              desktopSidebarCollapsed ? 'w-0 border-r-0' : 'w-64',
+            )}
+          >
+            <div className="flex h-full w-64 flex-col">
+              <ThreadSidebar />
+            </div>
           </aside>
         )}
 
