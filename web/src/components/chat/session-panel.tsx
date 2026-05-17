@@ -126,7 +126,8 @@ export function SessionPanel({ threadId, cwd, onClose, openFile, openFileSeq, on
 
   return (
     <div className="flex h-full border-t border-border bg-background">
-      <div className="flex w-52 shrink-0 flex-col overflow-hidden border-r border-border">
+      {/* File tree sidebar — hidden on mobile/tablet to save space */}
+      <div className="hidden w-52 shrink-0 flex-col overflow-hidden border-r border-border lg:flex">
         <div className="shrink-0 border-b border-border px-3 py-1.5 text-xs font-medium text-muted-foreground">
           {t('Explorer')}
         </div>

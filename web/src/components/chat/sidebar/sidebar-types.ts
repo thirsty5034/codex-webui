@@ -1,10 +1,9 @@
 /** Shared types and pure helpers for the thread sidebar. */
 import type { ThreadDto } from '@/generated/api';
 
-export type SidebarView =
-  | { type: 'overview' }
-  | { type: 'workspaceDetail'; cwd: string }
-  | { type: 'archivedDetail' };
+// SidebarView type is defined in layout-store.ts as SidebarViewState.
+// Re-export for backward compatibility with child components.
+export type { SidebarViewState as SidebarView } from '@/stores/layout-store';
 
 export type ConfirmAction =
   | { type: 'archive'; thread: ThreadDto }

@@ -4,13 +4,21 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import { Outlet, useNavigate, useRouterState } from '@tanstack/react-router';
+import { useTranslation } from 'react-i18next';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import {
+  Sheet,
+  SheetContent,
+  SheetTitle,
+} from '@/components/ui/sheet';
 import { ChatHeader } from '@/components/chat/chat-header';
 import { ThreadSidebar } from '@/components/chat/thread-sidebar';
 import { SnackbarContainer } from '@/components/snackbar/snackbar-container';
 import { CodexStatusBanner } from '@/components/codex-status-banner';
+import { useBreakpoint } from '@/hooks/use-breakpoint';
 import { useCodexSocket } from '@/hooks/use-codex-socket';
 import { useFilesStore } from '@/stores/files-store';
+import { useLayoutStore } from '@/stores/layout-store';
 import { useTimelineStore } from '@/stores/timeline-store';
 import { useThemeStore } from '@/stores/theme-store';
 import { clearApiToken } from '@/auth-token';
@@ -216,14 +224,49 @@ export function AuthenticatedLayout() {
     }
   }, [pathname, threadCwd, homeDir, setRootDir]);
 
+  const { t } = useTranslation();
   const handleToggleDiagnostics = useCallback(() => {
     void navigate({ to: '/diagnostics' });
   }, [navigate]);
 
+  // ── Responsive layout ────────────────────────────────────────────────
+  const breakpoint = useBreakpoint();
+  const isDesktop = breakpoint === 'desktop';
+  const sidebarOpen = useLayoutStore((s) => s.sidebarOpen);
+  const setSidebarOpen = useLayoutStore((s) => s.setSidebarOpen);
+  const desktopSidebarCollapsed = useLayoutStore((s) => s.desktopSidebarCollapsed);
+
+  // Auto-close sidebar sheet on route change
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [pathname, setSidebarOpen]);
+
+  // Auto-close sidebar sheet when entering desktop breakpoint
+  useEffect(() => {
+    if (isDesktop) setSidebarOpen(false);
+  }, [isDesktop, setSidebarOpen]);
+
+  const showInlineSidebar = isDesktop && !desktopSidebarCollapsed;
+
   return (
     <TooltipProvider>
-      <div className="flex h-dvh overflow-hidden bg-background">
-        <ThreadSidebar />
+      <div className="flex h-full overflow-hidden bg-background">
+        {/* Desktop: inline sidebar */}
+        {showInlineSidebar && (
+          <aside className="relative z-10 flex w-64 shrink-0 flex-col border-r border-[var(--glass-border-subtle)]">
+            <ThreadSidebar />
+          </aside>
+        )}
+
+        {/* Mobile/Tablet: sidebar as Sheet overlay */}
+        {!isDesktop && (
+          <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+            <SheetContent side="left" className="!w-[280px] p-0 sm:!max-w-[320px]" showCloseButton={false}>
+              <SheetTitle className="sr-only">{t('Navigation')}</SheetTitle>
+              <ThreadSidebar />
+            </SheetContent>
+          </Sheet>
+        )}
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col isolate">
           <ChatHeader

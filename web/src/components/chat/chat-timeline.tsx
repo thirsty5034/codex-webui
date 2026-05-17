@@ -166,11 +166,11 @@ export function ChatTimeline({ onEditMessage }: Props) {
         className="min-h-0 flex-1 overflow-y-auto"
       >
         <div
-          className="relative px-4 md:px-6"
+          className="relative px-3 sm:px-4 lg:px-6"
           style={{ height: `${virtualizer.getTotalSize()}px` }}
         >
           <div
-            className="absolute left-0 top-0 w-full px-4 md:px-6"
+            className="absolute left-0 top-0 w-full px-3 sm:px-4 lg:px-6"
             style={{ transform: `translateY(${virtualItems[0]?.start ?? 0}px)` }}
           >
             {virtualItems.map((virtualItem) => {

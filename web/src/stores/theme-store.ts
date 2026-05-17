@@ -1,38 +1,40 @@
 /**
  * Shared theme state — single source of truth for dark mode.
- * Persisted to localStorage. Falls back to system preference.
+ * Persisted to localStorage via Zustand persist middleware.
+ * Falls back to system preference on first load.
  */
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 const STORAGE_KEY = 'codex.webui.theme';
 
-function readStoredTheme(): string | null {
-  try {
-    return localStorage.getItem(STORAGE_KEY);
-  } catch {
-    return null;
-  }
-}
-
-function writeStoredTheme(dark: boolean) {
-  try {
-    localStorage.setItem(STORAGE_KEY, dark ? 'dark' : 'light');
-  } catch {
-    // Storage unavailable in restricted contexts — skip silently.
-  }
-}
-
-function getInitialDark(): boolean {
-  const stored = readStoredTheme();
-  if (stored === 'dark') return true;
-  if (stored === 'light') return false;
+function getSystemPrefersDark(): boolean {
   return window.matchMedia('(prefers-color-scheme: dark)').matches;
 }
 
-function applyAndPersist(dark: boolean) {
+function applyDarkClass(dark: boolean) {
   document.documentElement.classList.toggle('dark', dark);
-  writeStoredTheme(dark);
 }
+
+/**
+ * Migrate legacy plain-string storage (`"dark"` / `"light"`) to
+ * Zustand persist JSON format. Must run before store creation.
+ */
+function migrateLegacyStorage() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw === 'dark' || raw === 'light') {
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ state: { dark: raw === 'dark' }, version: 0 }),
+      );
+    }
+  } catch {
+    // Storage unavailable — skip silently.
+  }
+}
+
+migrateLegacyStorage();
 
 interface ThemeState {
   dark: boolean;
@@ -40,18 +42,32 @@ interface ThemeState {
   toggleDark: () => void;
 }
 
-export const useThemeStore = create<ThemeState>((set) => ({
-  dark: getInitialDark(),
+export const useThemeStore = create<ThemeState>()(
+  persist(
+    (set) => ({
+      dark: getSystemPrefersDark(),
 
-  setDark: (dark) => {
-    applyAndPersist(dark);
-    set({ dark });
-  },
+      setDark: (dark) => {
+        applyDarkClass(dark);
+        set({ dark });
+      },
 
-  toggleDark: () =>
-    set((state) => {
-      const dark = !state.dark;
-      applyAndPersist(dark);
-      return { dark };
+      toggleDark: () =>
+        set((state) => {
+          const dark = !state.dark;
+          applyDarkClass(dark);
+          return { dark };
+        }),
     }),
-}));
+    {
+      name: STORAGE_KEY,
+      partialize: (state) => ({ dark: state.dark }),
+      onRehydrateStorage: () => (state) => {
+        if (state) applyDarkClass(state.dark);
+      },
+    },
+  ),
+);
+
+// Apply initial theme immediately (before rehydration completes)
+applyDarkClass(useThemeStore.getState().dark);

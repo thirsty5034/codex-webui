@@ -92,7 +92,7 @@ export function SkillSelector({ cwd, disabled, onSelect }: Props) {
           title={t('Add skill')}
         >
           <Zap className="h-3.5 w-3.5" />
-          {t('Skill')}
+          <span className="hidden sm:inline">{t('Skill')}</span>
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-72 p-0" align="start" side="top">

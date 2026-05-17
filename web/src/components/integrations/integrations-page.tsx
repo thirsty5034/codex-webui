@@ -43,7 +43,7 @@ export function IntegrationsPage() {
 
   return (
     <div className="flex flex-1 flex-col overflow-auto">
-      <div className="mx-auto w-full max-w-4xl space-y-6 px-6 py-8">
+      <div className="mx-auto w-full max-w-4xl space-y-6 px-4 py-4 sm:px-6 sm:py-8">
         {/* Header */}
         <div className="flex items-center gap-3">
           <Button

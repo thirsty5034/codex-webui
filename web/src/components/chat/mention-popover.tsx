@@ -47,7 +47,7 @@ export function MentionPopover({ open, browseRelative, filtered, isLoading, sele
   const pathSegments = browseRelative ? browseRelative.split('/') : [];
 
   return (
-    <div className="absolute bottom-full z-50 mb-1 w-72 rounded-lg border border-border bg-popover shadow-lg">
+    <div className="absolute bottom-full z-50 mb-1 w-[calc(100vw-2rem)] max-w-72 rounded-lg border border-border bg-popover shadow-lg sm:w-72">
       {/* Clickable breadcrumb for navigation */}
       <div className="flex items-center gap-0.5 border-b border-border/60 px-3 py-1.5 text-[11px] text-muted-foreground">
         <button

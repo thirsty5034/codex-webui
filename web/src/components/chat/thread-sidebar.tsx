@@ -4,7 +4,7 @@
  * state, queries, mutations, and view routing.
  */
 import { useMemo, useState } from 'react';
-import { FolderOpen, Puzzle, Plus, Settings, Terminal } from 'lucide-react';
+import { FolderOpen, PanelLeftClose, Puzzle, Plus, Settings, Terminal } from 'lucide-react';
 import { useNavigate, useRouterState } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -25,8 +25,9 @@ import {
 import { tokenUsageReadThreadTokenUsage, turnDiffReadThreadTurnDiffs } from '@/generated/api/sdk.gen';
 import type { ThreadDto } from '@/generated/api';
 import { useTimelineStore } from '@/stores/timeline-store';
+import { useLayoutStore } from '@/stores/layout-store';
 import { cn } from '@/lib/utils';
-import type { ConfirmAction, SidebarView } from './sidebar/sidebar-types';
+import type { ConfirmAction } from './sidebar/sidebar-types';
 import { threadLabel, groupByWorkspace } from './sidebar/sidebar-types';
 import { ThreadRow } from './sidebar/thread-row';
 import { WorkspaceOverview } from './sidebar/workspace-overview';
@@ -69,11 +70,18 @@ export function ThreadSidebar() {
   const addSystemError = useTimelineStore((s) => s.addSystemError);
   const queryClient = useQueryClient();
 
-  // ── Local UI state ──────────────────────────────────────────────────
-  const [sidebarView, setSidebarView] = useState<SidebarView>({ type: 'overview' });
+  // ── Layout store (sidebar view + collapsed groups + collapse) ────────
+  const sidebarView = useLayoutStore((s) => s.sidebarView);
+  const setSidebarView = useLayoutStore((s) => s.setSidebarView);
+  const collapsedGroupKeys = useLayoutStore((s) => s.collapsedGroupKeys);
+  const toggleCollapsedGroup = useLayoutStore((s) => s.toggleCollapsedGroup);
+  const toggleDesktopSidebarCollapsed = useLayoutStore((s) => s.toggleDesktopSidebarCollapsed);
+  // Derive Set<string> for child components that expect it
+  const collapsedGroups = useMemo(() => new Set(collapsedGroupKeys), [collapsedGroupKeys]);
+
+  // ── Local UI state (ephemeral) ─────────────────────────────────────
   const [cursor, setCursor] = useState<string | null>(null);
   const [cursorStack, setCursorStack] = useState<Array<string | null>>([]);
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [renameThread, setRenameThread] = useState<ThreadDto | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
@@ -216,13 +224,6 @@ export function ThreadSidebar() {
   });
 
   // ── View navigation helpers ─────────────────────────────────────────
-  const toggleCollapse = (key: string) => {
-    setCollapsedGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key); else next.add(key);
-      return next;
-    });
-  };
 
   const resetDetailPagination = () => { setCursor(null); setCursorStack([]); };
 
@@ -299,7 +300,7 @@ export function ThreadSidebar() {
 
   // ── Render ──────────────────────────────────────────────────────────
   return (
-    <aside className="relative z-10 flex w-64 shrink-0 flex-col border-r border-[var(--glass-border-subtle)] bg-card/80">
+    <div className="flex h-full flex-col bg-card/80">
       {/* Global actions */}
       <div className="space-y-0.5 px-2 py-2">
         <button
@@ -380,7 +381,7 @@ export function ThreadSidebar() {
             workspaceGroups={workspaceGroups}
             collapsedGroups={collapsedGroups}
             isLoading={overviewThreadsQuery.isLoading || overviewArchivedQuery.isLoading}
-            onToggleCollapse={toggleCollapse}
+            onToggleCollapse={toggleCollapsedGroup}
             onOpenArchivedDetail={openArchivedDetail}
             onOpenWorkspaceDetail={openWorkspaceDetail}
             onCreateInWorkspace={(cwd) => createThread.mutate({ body: { cwd } })}
@@ -401,6 +402,18 @@ export function ThreadSidebar() {
         )}
       </ScrollArea>
 
+      {/* Desktop collapse toggle (hidden in mobile Sheet) */}
+      <div className="hidden shrink-0 border-t border-border px-2 py-1.5 lg:block">
+        <button
+          type="button"
+          onClick={toggleDesktopSidebarCollapsed}
+          className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+        >
+          <PanelLeftClose className="h-4 w-4 shrink-0" />
+          {t('Collapse sidebar')}
+        </button>
+      </div>
+
       <RenameDialog
         open={renameThread !== null}
         pending={updateThreadName.isPending}
@@ -420,6 +433,6 @@ export function ThreadSidebar() {
         onClose={() => setDirPickerOpen(false)}
         onSelect={(cwd) => createThread.mutate({ body: { cwd } })}
       />
-    </aside>
+    </div>
   );
 }

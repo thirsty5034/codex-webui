@@ -1,15 +1,16 @@
 /**
  * Circular progress ring showing context window usage.
  * Placed left of the Send button in ChatInput.
- * Hover reveals a detailed token breakdown tooltip.
+ * Desktop: hover reveals popover. Mobile: tap reveals popover.
  */
+import { useState, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { useIsMobile } from '@/hooks/use-breakpoint';
 import { useTimelineStore } from '@/stores/timeline-store';
 import { getContextRatio, formatTokens } from '@/lib/token-usage';
 
@@ -29,6 +30,66 @@ function ringColor(ratio: number): string {
   return '#22c55e'; // green-500
 }
 
+/**
+ * Popover wrapper: desktop opens on hover, mobile opens on tap.
+ */
+function HoverPopover({
+  children,
+  detail,
+}: {
+  children: React.ReactNode;
+  detail: React.ReactNode;
+}) {
+  const mobile = useIsMobile();
+  const [open, setOpen] = useState(false);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const cancelClose = useCallback(() => {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+  }, []);
+
+  const scheduleClose = useCallback(() => {
+    cancelClose();
+    closeTimer.current = setTimeout(() => setOpen(false), 150);
+  }, [cancelClose]);
+
+  // Mobile: default click behavior via Radix
+  if (mobile) {
+    return (
+      <Popover>
+        <PopoverTrigger asChild>{children}</PopoverTrigger>
+        <PopoverContent side="top" className="w-auto p-3">
+          {detail}
+        </PopoverContent>
+      </Popover>
+    );
+  }
+
+  // Desktop: hover-controlled popover
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        asChild
+        onMouseEnter={() => { cancelClose(); setOpen(true); }}
+        onMouseLeave={scheduleClose}
+      >
+        {children}
+      </PopoverTrigger>
+      <PopoverContent
+        side="top"
+        className="w-auto p-3"
+        onMouseEnter={cancelClose}
+        onMouseLeave={scheduleClose}
+      >
+        {detail}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 export function TokenUsageRing() {
   const { t } = useTranslation();
   const usage = useTimelineStore((s) => s.latestTokenUsage);
@@ -39,18 +100,11 @@ export function TokenUsageRing() {
   // No context window info → show compact token count only
   if (ratio === null) {
     return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span className="cursor-default text-[10px] tabular-nums text-muted-foreground">
-              {formatTokens(usage.total.totalTokens)}
-            </span>
-          </TooltipTrigger>
-          <TooltipContent side="top" className="max-w-xs">
-            <TokenBreakdown usage={usage} t={t} />
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <HoverPopover detail={<TokenBreakdown usage={usage} t={t} />}>
+        <span className="cursor-default text-[10px] tabular-nums text-muted-foreground">
+          {formatTokens(usage.total.totalTokens)}
+        </span>
+      </HoverPopover>
     );
   }
 
@@ -59,45 +113,38 @@ export function TokenUsageRing() {
   const pct = Math.round(ratio * 100);
 
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div className="relative flex cursor-default items-center justify-center" style={{ width: SIZE, height: SIZE }}>
-            <svg width={SIZE} height={SIZE} className="-rotate-90">
-              {/* Background track */}
-              <circle
-                cx={SIZE / 2}
-                cy={SIZE / 2}
-                r={RADIUS}
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={STROKE}
-                className="text-muted/30"
-              />
-              {/* Progress arc */}
-              <circle
-                cx={SIZE / 2}
-                cy={SIZE / 2}
-                r={RADIUS}
-                fill="none"
-                stroke={color}
-                strokeWidth={STROKE}
-                strokeDasharray={CIRCUMFERENCE}
-                strokeDashoffset={offset}
-                strokeLinecap="round"
-                className="transition-all duration-300"
-              />
-            </svg>
-            <span className="absolute text-[8px] font-medium tabular-nums text-muted-foreground">
-              {pct}
-            </span>
-          </div>
-        </TooltipTrigger>
-        <TooltipContent side="top" className="max-w-xs">
-          <TokenBreakdown usage={usage} t={t} />
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <HoverPopover detail={<TokenBreakdown usage={usage} t={t} />}>
+      <div className="relative flex cursor-default items-center justify-center" style={{ width: SIZE, height: SIZE }}>
+        <svg width={SIZE} height={SIZE} className="-rotate-90">
+          {/* Background track */}
+          <circle
+            cx={SIZE / 2}
+            cy={SIZE / 2}
+            r={RADIUS}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={STROKE}
+            className="text-muted/30"
+          />
+          {/* Progress arc */}
+          <circle
+            cx={SIZE / 2}
+            cy={SIZE / 2}
+            r={RADIUS}
+            fill="none"
+            stroke={color}
+            strokeWidth={STROKE}
+            strokeDasharray={CIRCUMFERENCE}
+            strokeDashoffset={offset}
+            strokeLinecap="round"
+            className="transition-all duration-300"
+          />
+        </svg>
+        <span className="absolute text-[8px] font-medium tabular-nums text-muted-foreground">
+          {pct}
+        </span>
+      </div>
+    </HoverPopover>
   );
 }
 

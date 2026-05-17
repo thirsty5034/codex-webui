@@ -183,7 +183,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput(
 
   // ── Render ───────────────────────────────────────────────
   return (
-    <footer className="glass-4 sticky bottom-0 z-10 px-4 py-3 md:px-6">
+    <footer className="glass-4 sticky bottom-0 z-10 px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6">
       {readOnly && (
         <p className="mb-2 rounded-lg bg-muted px-3 py-2 text-center text-xs text-muted-foreground">
           {t('Archived threads are read-only. Unarchive or fork to continue.')}
@@ -248,7 +248,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput(
               title={t('Terminal')}
             >
               <TerminalSquare className="h-3.5 w-3.5" />
-              {t('Terminal')}
+              <span className="hidden sm:inline">{t('Terminal')}</span>
             </Button>
           </div>
 

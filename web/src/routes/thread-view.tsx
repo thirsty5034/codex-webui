@@ -14,6 +14,12 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from '@/components/ui/resizable';
+import {
+  Sheet,
+  SheetContent,
+  SheetTitle,
+} from '@/components/ui/sheet';
+import { useBreakpoint } from '@/hooks/use-breakpoint';
 import { useTimelineStore } from '@/stores/timeline-store';
 import { showSnackbar } from '@/stores/snackbar-store';
 import {
@@ -133,11 +139,25 @@ export function ThreadView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [threadId]);
 
+  const breakpoint = useBreakpoint();
+  const isDesktop = breakpoint === 'desktop';
   const showPanel = sessionPanelOpen && !!threadCwd;
+
+  const sessionPanelContent = showPanel ? (
+    <SessionPanel
+      threadId={threadId}
+      cwd={threadCwd!}
+      onClose={() => setSessionPanelOpen(false)}
+      openFile={pendingOpenFile?.path ?? null}
+      openFileSeq={pendingOpenFile?.seq ?? -1}
+      onFileOpened={handleFileOpened}
+    />
+  ) : null;
 
   return (
     <>
-      {showPanel ? (
+      {showPanel && isDesktop ? (
+        /* Desktop: resizable vertical split */
         <ResizablePanelGroup orientation="vertical" className="min-h-0 flex-1">
           <ResizablePanel defaultSize="65%" minSize="20%">
             <div className="flex h-full flex-col">
@@ -147,19 +167,24 @@ export function ThreadView() {
           <ResizableHandle withHandle />
           <ResizablePanel defaultSize="35%" minSize="15%">
             <div className="flex h-full flex-col">
-              <SessionPanel
-                threadId={threadId}
-                cwd={threadCwd!}
-                onClose={() => setSessionPanelOpen(false)}
-                openFile={pendingOpenFile?.path ?? null}
-                openFileSeq={pendingOpenFile?.seq ?? -1}
-                onFileOpened={handleFileOpened}
-              />
+              {sessionPanelContent}
             </div>
           </ResizablePanel>
         </ResizablePanelGroup>
       ) : (
         <ChatTimeline onEditMessage={(v) => chatInputRef.current?.setInput(v)} />
+      )}
+
+      {/* Mobile/Tablet: session panel as bottom Sheet */}
+      {!isDesktop && (
+        <Sheet open={showPanel} onOpenChange={(open) => { if (!open) setSessionPanelOpen(false); }}>
+          <SheetContent side="bottom" className="!h-[70dvh] p-0" showCloseButton={false}>
+            <SheetTitle className="sr-only">{t('Session panel')}</SheetTitle>
+            <div className="flex h-full flex-col">
+              {sessionPanelContent}
+            </div>
+          </SheetContent>
+        </Sheet>
       )}
 
       <ChatInput
