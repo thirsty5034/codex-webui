@@ -207,85 +207,88 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput(
           onNavigateUp={handleMentionNavigateUp}
         />
 
-        <Textarea
-          ref={textareaRef}
-          value={value}
-          onChange={(e) => handleChange(e.target.value)}
-          onKeyDown={handleKeyDown}
-          onPaste={handlePaste}
-          placeholder={
-            readOnly
-              ? t('Archived thread is read-only')
-              : hasActiveTurn
-                ? t('Add input to the active turn...')
-                : threadId
-                  ? t('Type a message... (@ to mention files, paste images)')
-                  : t('Create a thread first')
-          }
-          disabled={!threadId || readOnly}
-          rows={1}
-          className={cn(
-            'max-h-32 min-h-0 resize-none bg-background/60 pb-10 pr-4 pt-2.5 backdrop-blur-sm transition-all duration-200 focus:ring-2 focus:ring-primary/30',
-            chipAttachments.length > 0 ? 'rounded-b-xl rounded-t-none border-t-0' : 'rounded-xl',
-          )}
-        />
-        <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
-          <div className="flex items-center gap-1">
-            <ModelSelector />
-            <SecurityPolicyBadge />
-            <McpStatusBadge />
-            <SkillSelector
-              cwd={threadCwd}
-              disabled={!threadId || readOnly}
-              onSelect={handleSkillSelect}
-            />
-            <Button
-              size="sm"
-              variant={panelOpen ? 'secondary' : 'ghost'}
-              className="h-7 gap-1.5 rounded-lg px-2.5 text-xs"
-              onClick={onTogglePanel}
-              disabled={!threadId || readOnly}
-              title={t('Terminal')}
-            >
-              <TerminalSquare className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">{t('Terminal')}</span>
-            </Button>
-          </div>
+        {/* Container provides border/rounding; textarea + buttons are stacked inside */}
+        <div className={cn(
+          'border border-input bg-background/60 backdrop-blur-sm transition-all duration-200 focus-within:ring-2 focus-within:ring-primary/30',
+          chipAttachments.length > 0 ? 'rounded-b-xl border-t-0' : 'rounded-xl',
+        )}>
+          <Textarea
+            ref={textareaRef}
+            value={value}
+            onChange={(e) => handleChange(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
+            placeholder={
+              readOnly
+                ? t('Archived thread is read-only')
+                : hasActiveTurn
+                  ? t('Add input to the active turn...')
+                  : threadId
+                    ? t('Type a message... (@ to mention files, paste images)')
+                    : t('Create a thread first')
+            }
+            disabled={!threadId || readOnly}
+            rows={1}
+            className="max-h-40 min-h-20 resize-none overflow-y-auto border-none bg-transparent pr-4 pt-2.5 shadow-none focus-visible:ring-0"
+          />
+          <div className="flex items-center justify-between px-2 pb-2">
+            <div className="flex items-center gap-1">
+              <ModelSelector />
+              <SecurityPolicyBadge />
+              <McpStatusBadge />
+              <SkillSelector
+                cwd={threadCwd}
+                disabled={!threadId || readOnly}
+                onSelect={handleSkillSelect}
+              />
+              <Button
+                size="sm"
+                variant={panelOpen ? 'secondary' : 'ghost'}
+                className="h-7 gap-1.5 rounded-lg px-2.5 text-xs"
+                onClick={onTogglePanel}
+                disabled={!threadId || readOnly}
+                title={t('Terminal')}
+              >
+                <TerminalSquare className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">{t('Terminal')}</span>
+              </Button>
+            </div>
 
-          <div className="flex items-center gap-2">
-            <TokenUsageRing />
-            {hasActiveTurn ? (
-              <>
-                <Button
-                  size="sm"
-                  className="h-7 rounded-lg px-2.5 text-xs transition-transform duration-200 hover:scale-105 active:scale-95"
-                  disabled={!hasContent || !canSteer || steer.isPending}
-                  onClick={handleSteer}
-                  title={t('Steer current turn')}
-                >
-                  {t('Steer')}
-                </Button>
+            <div className="flex items-center gap-2">
+              <TokenUsageRing />
+              {hasActiveTurn ? (
+                <>
+                  <Button
+                    size="sm"
+                    className="h-7 rounded-lg px-2.5 text-xs transition-transform duration-200 hover:scale-105 active:scale-95"
+                    disabled={!hasContent || !canSteer || steer.isPending}
+                    onClick={handleSteer}
+                    title={t('Steer current turn')}
+                  >
+                    {t('Steer')}
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="destructive"
+                    className="h-7 w-7 rounded-lg transition-transform duration-200 hover:scale-105 active:scale-95"
+                    disabled={interruptTurn.isPending}
+                    onClick={handleStop}
+                    title={t('Stop current turn')}
+                  >
+                    <Square className="h-3.5 w-3.5" />
+                  </Button>
+                </>
+              ) : (
                 <Button
                   size="icon"
-                  variant="destructive"
                   className="h-7 w-7 rounded-lg transition-transform duration-200 hover:scale-105 active:scale-95"
-                  disabled={interruptTurn.isPending}
-                  onClick={handleStop}
-                  title={t('Stop current turn')}
+                  disabled={!threadId || !hasContent || loading || readOnly}
+                  onClick={handleSend}
                 >
-                  <Square className="h-3.5 w-3.5" />
+                  <Send className="h-3.5 w-3.5" />
                 </Button>
-              </>
-            ) : (
-              <Button
-                size="icon"
-                className="h-7 w-7 rounded-lg transition-transform duration-200 hover:scale-105 active:scale-95"
-                disabled={!threadId || !hasContent || loading || readOnly}
-                onClick={handleSend}
-              >
-                <Send className="h-3.5 w-3.5" />
-              </Button>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div>

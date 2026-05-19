@@ -93,6 +93,19 @@ RUN npm install -g pnpm@10.18.3
 # Create app directories
 RUN mkdir -p /root/.codex /workspaces /app/logs
 
+# Workaround: codex on Linux app-server mode doesn't inject arg0 tools into
+# child process PATH. Create stable symlinks so apply_patch etc. are always
+# available. All arg0 tools are the codex multi-call binary (argv[0] dispatch).
+RUN CODEX_BIN="$(find /root/.local/share/mise -name codex -path '*/vendor/*/codex/codex' -type f 2>/dev/null | head -1)" \
+ && if [ -n "$CODEX_BIN" ]; then \
+      for tool in apply_patch applypatch codex-execve-wrapper codex-linux-sandbox; do \
+        ln -sf "$CODEX_BIN" "/usr/local/bin/$tool"; \
+      done; \
+      echo "Linked codex arg0 tools -> $CODEX_BIN"; \
+    else \
+      echo "WARNING: codex vendor binary not found, arg0 tools not linked"; \
+    fi
+
 # ── App installation ─────────────────────────────────────────────────
 WORKDIR /app
 
