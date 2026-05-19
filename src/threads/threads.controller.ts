@@ -132,6 +132,10 @@ export class ThreadsController {
       searchTerm,
       cwd,
       sortKey: sortKey,
+      // Empty array = all providers. Without this, app-server defaults to
+      // the currently configured provider, hiding threads created under
+      // other providers (e.g. "donehub" threads invisible when default is "openai").
+      modelProviders: [],
     });
   }
 
