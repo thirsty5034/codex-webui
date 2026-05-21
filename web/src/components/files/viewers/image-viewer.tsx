@@ -3,13 +3,14 @@ import { useState } from 'react';
 import { ImageIcon, ZoomIn, ZoomOut, RotateCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { buildFileServeUrl } from '@/auth-token';
+import { buildPreviewUrl, filePreviewSource, type PreviewSource } from './preview-source';
 
 interface Props {
   filePath: string;
+  source?: PreviewSource;
 }
 
-export function ImageViewer({ filePath }: Props) {
+export function ImageViewer({ filePath, source }: Props) {
   const { t } = useTranslation();
   const [error, setError] = useState(false);
   const [zoom, setZoom] = useState(1);
@@ -23,7 +24,7 @@ export function ImageViewer({ filePath }: Props) {
     setRotation(0);
   }
 
-  const src = buildFileServeUrl(filePath);
+  const src = buildPreviewUrl(source ?? filePreviewSource(filePath));
 
   if (error) {
     return (

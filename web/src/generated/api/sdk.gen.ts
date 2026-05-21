@@ -2,7 +2,7 @@
 
 import { type Client, formDataBodySerializer, type Options as Options2, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { AccountCancelLoginData, AccountCancelLoginErrors, AccountCancelLoginResponses, AccountLoginData, AccountLoginErrors, AccountLoginResponses, AccountLogoutData, AccountLogoutErrors, AccountLogoutResponses, AccountReadAccountData, AccountReadAccountErrors, AccountReadAccountResponses, AccountReadRateLimitsData, AccountReadRateLimitsErrors, AccountReadRateLimitsResponses, AppGetStatusData, AppGetStatusResponses, AppsListAppsData, AppsListAppsErrors, AppsListAppsResponses, AuthLoginData, AuthLoginErrors, AuthLoginResponses, AuthLogoutData, AuthLogoutResponses, ChatUploadAttachmentData, ChatUploadAttachmentErrors, ChatUploadAttachmentResponses, CodexConfigReadConfigData, CodexConfigReadConfigErrors, CodexConfigReadConfigResponses, CodexConfigReadRawConfigData, CodexConfigReadRawConfigErrors, CodexConfigReadRawConfigResponses, CodexConfigUpdateConfigData, CodexConfigUpdateConfigErrors, CodexConfigUpdateConfigResponses, CodexConfigUpdateRawConfigData, CodexConfigUpdateRawConfigErrors, CodexConfigUpdateRawConfigResponses, CodexStatusGetStatusData, CodexStatusGetStatusErrors, CodexStatusGetStatusResponses, CodexStatusUpdateApprovalPolicyData, CodexStatusUpdateApprovalPolicyErrors, CodexStatusUpdateApprovalPolicyResponses, CodexStatusUpdateSandboxModeData, CodexStatusUpdateSandboxModeErrors, CodexStatusUpdateSandboxModeResponses, FilesAddRootData, FilesAddRootErrors, FilesAddRootResponses, FilesCopyPathData, FilesCopyPathErrors, FilesCopyPathResponses, FilesCreateDirectoryData, FilesCreateDirectoryErrors, FilesCreateDirectoryResponses, FilesCreateFileData, FilesCreateFileErrors, FilesCreateFileResponses, FilesDeletePathData, FilesDeletePathErrors, FilesDeletePathResponses, FilesDownloadFileData, FilesDownloadFileErrors, FilesGetMetadataData, FilesGetMetadataErrors, FilesGetMetadataResponses, FilesGetRootsData, FilesGetRootsErrors, FilesGetRootsResponses, FilesMovePathData, FilesMovePathErrors, FilesMovePathResponses, FilesReadFileData, FilesReadFileErrors, FilesReadFileResponses, FilesReadTreeData, FilesReadTreeErrors, FilesReadTreeResponses, FilesRenamePathData, FilesRenamePathErrors, FilesRenamePathResponses, FilesServeFileData, FilesServeFileErrors, FilesUploadFilesData, FilesUploadFilesErrors, FilesUploadFilesResponses, FilesWriteFileData, FilesWriteFileErrors, FilesWriteFileResponses, LogsExportDiagnosticsData, LogsExportDiagnosticsErrors, LogsExportDiagnosticsResponses, LogsListLogsData, LogsListLogsErrors, LogsListLogsResponses, McpServersListServersData, McpServersListServersErrors, McpServersListServersResponses, McpServersReloadAllData, McpServersReloadAllErrors, McpServersReloadAllResponses, McpServersStartOauthLoginData, McpServersStartOauthLoginErrors, McpServersStartOauthLoginResponses, ModelsListModelsData, ModelsListModelsErrors, ModelsListModelsResponses, PendingApprovalsListPendingData, PendingApprovalsListPendingResponses, PendingApprovalsRespondData, PendingApprovalsRespondResponses, PluginsInstallPluginData, PluginsInstallPluginErrors, PluginsInstallPluginResponses, PluginsListPluginsData, PluginsListPluginsErrors, PluginsListPluginsResponses, PluginsReadPluginData, PluginsReadPluginErrors, PluginsReadPluginResponses, PluginsUninstallPluginData, PluginsUninstallPluginErrors, PluginsUninstallPluginResponses, SettingsGetSettingData, SettingsGetSettingErrors, SettingsGetSettingResponses, SettingsListSettingsData, SettingsListSettingsErrors, SettingsListSettingsResponses, SettingsResetSettingData, SettingsResetSettingErrors, SettingsResetSettingResponses, SettingsUpdateSettingData, SettingsUpdateSettingErrors, SettingsUpdateSettingResponses, SettingsUpdateSettingsData, SettingsUpdateSettingsErrors, SettingsUpdateSettingsResponses, SkillsListSkillsData, SkillsListSkillsErrors, SkillsListSkillsResponses, SkillsWriteSkillConfigData, SkillsWriteSkillConfigErrors, SkillsWriteSkillConfigResponses, ThreadsArchiveThreadData, ThreadsArchiveThreadErrors, ThreadsArchiveThreadResponses, ThreadsCompactThreadData, ThreadsCompactThreadErrors, ThreadsCompactThreadResponses, ThreadsForkThreadData, ThreadsForkThreadErrors, ThreadsForkThreadResponses, ThreadsInterruptTurnData, ThreadsInterruptTurnErrors, ThreadsInterruptTurnResponses, ThreadsListLoadedThreadsData, ThreadsListLoadedThreadsErrors, ThreadsListLoadedThreadsResponses, ThreadsListThreadsData, ThreadsListThreadsErrors, ThreadsListThreadsResponses, ThreadsReadThreadData, ThreadsReadThreadErrors, ThreadsReadThreadResponses, ThreadsResumeThreadData, ThreadsResumeThreadErrors, ThreadsResumeThreadResponses, ThreadsRollbackThreadData, ThreadsRollbackThreadErrors, ThreadsRollbackThreadResponses, ThreadsSetThreadNameData, ThreadsSetThreadNameErrors, ThreadsSetThreadNameResponses, ThreadsStartThreadData, ThreadsStartThreadErrors, ThreadsStartThreadResponses, ThreadsStartTurnData, ThreadsStartTurnErrors, ThreadsStartTurnResponses, ThreadsSteerTurnData, ThreadsSteerTurnErrors, ThreadsSteerTurnResponses, ThreadsUnarchiveThreadData, ThreadsUnarchiveThreadErrors, ThreadsUnarchiveThreadResponses, TokenUsageReadThreadTokenUsageData, TokenUsageReadThreadTokenUsageErrors, TokenUsageReadThreadTokenUsageResponses, TurnDiffReadThreadTurnDiffsData, TurnDiffReadThreadTurnDiffsErrors, TurnDiffReadThreadTurnDiffsResponses } from './types.gen';
+import type { AccountCancelLoginData, AccountCancelLoginErrors, AccountCancelLoginResponses, AccountLoginData, AccountLoginErrors, AccountLoginResponses, AccountLogoutData, AccountLogoutErrors, AccountLogoutResponses, AccountReadAccountData, AccountReadAccountErrors, AccountReadAccountResponses, AccountReadRateLimitsData, AccountReadRateLimitsErrors, AccountReadRateLimitsResponses, AppGetStatusData, AppGetStatusResponses, AppsListAppsData, AppsListAppsErrors, AppsListAppsResponses, ArchiveListArchiveData, ArchiveListArchiveErrors, ArchiveListArchiveResponses, ArchiveReadEntryData, ArchiveReadEntryErrors, ArchiveReadEntryResponses, AuthLoginData, AuthLoginErrors, AuthLoginResponses, AuthLogoutData, AuthLogoutResponses, ChatUploadAttachmentData, ChatUploadAttachmentErrors, ChatUploadAttachmentResponses, CodexConfigReadConfigData, CodexConfigReadConfigErrors, CodexConfigReadConfigResponses, CodexConfigReadRawConfigData, CodexConfigReadRawConfigErrors, CodexConfigReadRawConfigResponses, CodexConfigUpdateConfigData, CodexConfigUpdateConfigErrors, CodexConfigUpdateConfigResponses, CodexConfigUpdateRawConfigData, CodexConfigUpdateRawConfigErrors, CodexConfigUpdateRawConfigResponses, CodexStatusGetStatusData, CodexStatusGetStatusErrors, CodexStatusGetStatusResponses, CodexStatusUpdateApprovalPolicyData, CodexStatusUpdateApprovalPolicyErrors, CodexStatusUpdateApprovalPolicyResponses, CodexStatusUpdateSandboxModeData, CodexStatusUpdateSandboxModeErrors, CodexStatusUpdateSandboxModeResponses, FilesAddRootData, FilesAddRootErrors, FilesAddRootResponses, FilesCopyPathData, FilesCopyPathErrors, FilesCopyPathResponses, FilesCreateDirectoryData, FilesCreateDirectoryErrors, FilesCreateDirectoryResponses, FilesCreateFileData, FilesCreateFileErrors, FilesCreateFileResponses, FilesDeletePathData, FilesDeletePathErrors, FilesDeletePathResponses, FilesDownloadFileData, FilesDownloadFileErrors, FilesGetMetadataData, FilesGetMetadataErrors, FilesGetMetadataResponses, FilesGetRootsData, FilesGetRootsErrors, FilesGetRootsResponses, FilesMovePathData, FilesMovePathErrors, FilesMovePathResponses, FilesReadFileData, FilesReadFileErrors, FilesReadFileResponses, FilesReadTreeData, FilesReadTreeErrors, FilesReadTreeResponses, FilesRenamePathData, FilesRenamePathErrors, FilesRenamePathResponses, FilesServeFileData, FilesServeFileErrors, FilesUploadFilesData, FilesUploadFilesErrors, FilesUploadFilesResponses, FilesWriteFileData, FilesWriteFileErrors, FilesWriteFileResponses, LogsExportDiagnosticsData, LogsExportDiagnosticsErrors, LogsExportDiagnosticsResponses, LogsListLogsData, LogsListLogsErrors, LogsListLogsResponses, McpServersListServersData, McpServersListServersErrors, McpServersListServersResponses, McpServersReloadAllData, McpServersReloadAllErrors, McpServersReloadAllResponses, McpServersStartOauthLoginData, McpServersStartOauthLoginErrors, McpServersStartOauthLoginResponses, ModelsListModelsData, ModelsListModelsErrors, ModelsListModelsResponses, OnlyOfficeGetConfigData, OnlyOfficeGetConfigErrors, OnlyOfficeGetConfigResponses, PendingApprovalsListPendingData, PendingApprovalsListPendingResponses, PendingApprovalsRespondData, PendingApprovalsRespondResponses, PluginsInstallPluginData, PluginsInstallPluginErrors, PluginsInstallPluginResponses, PluginsListPluginsData, PluginsListPluginsErrors, PluginsListPluginsResponses, PluginsReadPluginData, PluginsReadPluginErrors, PluginsReadPluginResponses, PluginsUninstallPluginData, PluginsUninstallPluginErrors, PluginsUninstallPluginResponses, SettingsGetSettingData, SettingsGetSettingErrors, SettingsGetSettingResponses, SettingsListSettingsData, SettingsListSettingsErrors, SettingsListSettingsResponses, SettingsResetSettingData, SettingsResetSettingErrors, SettingsResetSettingResponses, SettingsUpdateSettingData, SettingsUpdateSettingErrors, SettingsUpdateSettingResponses, SettingsUpdateSettingsData, SettingsUpdateSettingsErrors, SettingsUpdateSettingsResponses, SkillsListSkillsData, SkillsListSkillsErrors, SkillsListSkillsResponses, SkillsWriteSkillConfigData, SkillsWriteSkillConfigErrors, SkillsWriteSkillConfigResponses, ThreadsArchiveThreadData, ThreadsArchiveThreadErrors, ThreadsArchiveThreadResponses, ThreadsCompactThreadData, ThreadsCompactThreadErrors, ThreadsCompactThreadResponses, ThreadsForkThreadData, ThreadsForkThreadErrors, ThreadsForkThreadResponses, ThreadsInterruptTurnData, ThreadsInterruptTurnErrors, ThreadsInterruptTurnResponses, ThreadsListLoadedThreadsData, ThreadsListLoadedThreadsErrors, ThreadsListLoadedThreadsResponses, ThreadsListThreadsData, ThreadsListThreadsErrors, ThreadsListThreadsResponses, ThreadsReadThreadData, ThreadsReadThreadErrors, ThreadsReadThreadResponses, ThreadsResumeThreadData, ThreadsResumeThreadErrors, ThreadsResumeThreadResponses, ThreadsRollbackThreadData, ThreadsRollbackThreadErrors, ThreadsRollbackThreadResponses, ThreadsSetThreadNameData, ThreadsSetThreadNameErrors, ThreadsSetThreadNameResponses, ThreadsStartThreadData, ThreadsStartThreadErrors, ThreadsStartThreadResponses, ThreadsStartTurnData, ThreadsStartTurnErrors, ThreadsStartTurnResponses, ThreadsSteerTurnData, ThreadsSteerTurnErrors, ThreadsSteerTurnResponses, ThreadsUnarchiveThreadData, ThreadsUnarchiveThreadErrors, ThreadsUnarchiveThreadResponses, TokenUsageReadThreadTokenUsageData, TokenUsageReadThreadTokenUsageErrors, TokenUsageReadThreadTokenUsageResponses, TurnDiffReadThreadTurnDiffsData, TurnDiffReadThreadTurnDiffsErrors, TurnDiffReadThreadTurnDiffsResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -45,210 +45,20 @@ export const authLogin = <ThrowOnError extends boolean = false>(options: Options
 export const authLogout = <ThrowOnError extends boolean = false>(options?: Options<AuthLogoutData, ThrowOnError>) => (options?.client ?? client).post<AuthLogoutResponses, unknown, ThrowOnError>({ url: '/api/auth/logout', ...options });
 
 /**
- * Upload one chat attachment for rich user input
+ * List archive contents
  */
-export const chatUploadAttachment = <ThrowOnError extends boolean = false>(options: Options<ChatUploadAttachmentData, ThrowOnError>) => (options.client ?? client).post<ChatUploadAttachmentResponses, ChatUploadAttachmentErrors, ThrowOnError>({
-    ...formDataBodySerializer,
+export const archiveListArchive = <ThrowOnError extends boolean = false>(options: Options<ArchiveListArchiveData, ThrowOnError>) => (options.client ?? client).get<ArchiveListArchiveResponses, ArchiveListArchiveErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/chat/upload',
-    ...options,
-    headers: {
-        'Content-Type': null,
-        ...options.headers
-    }
-});
-
-/**
- * List runtime settings
- */
-export const settingsListSettings = <ThrowOnError extends boolean = false>(options?: Options<SettingsListSettingsData, ThrowOnError>) => (options?.client ?? client).get<SettingsListSettingsResponses, SettingsListSettingsErrors, ThrowOnError>({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/settings',
+    url: '/api/files/archive/list',
     ...options
 });
 
 /**
- * Batch update runtime settings
+ * Read one archive entry without extracting to disk
  */
-export const settingsUpdateSettings = <ThrowOnError extends boolean = false>(options: Options<SettingsUpdateSettingsData, ThrowOnError>) => (options.client ?? client).patch<SettingsUpdateSettingsResponses, SettingsUpdateSettingsErrors, ThrowOnError>({
+export const archiveReadEntry = <ThrowOnError extends boolean = false>(options: Options<ArchiveReadEntryData, ThrowOnError>) => (options.client ?? client).get<ArchiveReadEntryResponses, ArchiveReadEntryErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/settings',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Reset one runtime setting to env/default
- */
-export const settingsResetSetting = <ThrowOnError extends boolean = false>(options: Options<SettingsResetSettingData, ThrowOnError>) => (options.client ?? client).delete<SettingsResetSettingResponses, SettingsResetSettingErrors, ThrowOnError>({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/settings/{key}',
-    ...options
-});
-
-/**
- * Read one runtime setting
- */
-export const settingsGetSetting = <ThrowOnError extends boolean = false>(options: Options<SettingsGetSettingData, ThrowOnError>) => (options.client ?? client).get<SettingsGetSettingResponses, SettingsGetSettingErrors, ThrowOnError>({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/settings/{key}',
-    ...options
-});
-
-/**
- * Update one runtime setting
- */
-export const settingsUpdateSetting = <ThrowOnError extends boolean = false>(options: Options<SettingsUpdateSettingData, ThrowOnError>) => (options.client ?? client).patch<SettingsUpdateSettingResponses, SettingsUpdateSettingErrors, ThrowOnError>({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/settings/{key}',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Get aggregated Codex runtime status
- */
-export const codexStatusGetStatus = <ThrowOnError extends boolean = false>(options?: Options<CodexStatusGetStatusData, ThrowOnError>) => (options?.client ?? client).get<CodexStatusGetStatusResponses, CodexStatusGetStatusErrors, ThrowOnError>({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/codex/status',
-    ...options
-});
-
-/**
- * Update approval policy (hot-reloads all threads)
- */
-export const codexStatusUpdateApprovalPolicy = <ThrowOnError extends boolean = false>(options: Options<CodexStatusUpdateApprovalPolicyData, ThrowOnError>) => (options.client ?? client).post<CodexStatusUpdateApprovalPolicyResponses, CodexStatusUpdateApprovalPolicyErrors, ThrowOnError>({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/codex/approval-policy',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Update sandbox mode (hot-reloads all threads)
- */
-export const codexStatusUpdateSandboxMode = <ThrowOnError extends boolean = false>(options: Options<CodexStatusUpdateSandboxModeData, ThrowOnError>) => (options.client ?? client).post<CodexStatusUpdateSandboxModeResponses, CodexStatusUpdateSandboxModeErrors, ThrowOnError>({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/codex/sandbox-mode',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Read Codex config with origin metadata
- */
-export const codexConfigReadConfig = <ThrowOnError extends boolean = false>(options?: Options<CodexConfigReadConfigData, ThrowOnError>) => (options?.client ?? client).get<CodexConfigReadConfigResponses, CodexConfigReadConfigErrors, ThrowOnError>({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/codex/config',
-    ...options
-});
-
-/**
- * Update curated Codex config fields
- */
-export const codexConfigUpdateConfig = <ThrowOnError extends boolean = false>(options: Options<CodexConfigUpdateConfigData, ThrowOnError>) => (options.client ?? client).patch<CodexConfigUpdateConfigResponses, CodexConfigUpdateConfigErrors, ThrowOnError>({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/codex/config',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Read raw user config.toml
- */
-export const codexConfigReadRawConfig = <ThrowOnError extends boolean = false>(options?: Options<CodexConfigReadRawConfigData, ThrowOnError>) => (options?.client ?? client).get<CodexConfigReadRawConfigResponses, CodexConfigReadRawConfigErrors, ThrowOnError>({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/codex/config/raw',
-    ...options
-});
-
-/**
- * Write raw user config.toml and reload Codex config
- */
-export const codexConfigUpdateRawConfig = <ThrowOnError extends boolean = false>(options: Options<CodexConfigUpdateRawConfigData, ThrowOnError>) => (options.client ?? client).put<CodexConfigUpdateRawConfigResponses, CodexConfigUpdateRawConfigErrors, ThrowOnError>({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/codex/config/raw',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Read Codex account state and provider metadata
- */
-export const accountReadAccount = <ThrowOnError extends boolean = false>(options?: Options<AccountReadAccountData, ThrowOnError>) => (options?.client ?? client).get<AccountReadAccountResponses, AccountReadAccountErrors, ThrowOnError>({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/account',
-    ...options
-});
-
-/**
- * Start Codex account login
- */
-export const accountLogin = <ThrowOnError extends boolean = false>(options: Options<AccountLoginData, ThrowOnError>) => (options.client ?? client).post<AccountLoginResponses, AccountLoginErrors, ThrowOnError>({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/account/login',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Cancel a pending Codex account login
- */
-export const accountCancelLogin = <ThrowOnError extends boolean = false>(options: Options<AccountCancelLoginData, ThrowOnError>) => (options.client ?? client).post<AccountCancelLoginResponses, AccountCancelLoginErrors, ThrowOnError>({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/account/login/cancel',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Logout Codex account
- */
-export const accountLogout = <ThrowOnError extends boolean = false>(options?: Options<AccountLogoutData, ThrowOnError>) => (options?.client ?? client).post<AccountLogoutResponses, AccountLogoutErrors, ThrowOnError>({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/account/logout',
-    ...options
-});
-
-/**
- * Read Codex account rate limits
- */
-export const accountReadRateLimits = <ThrowOnError extends boolean = false>(options?: Options<AccountReadRateLimitsData, ThrowOnError>) => (options?.client ?? client).get<AccountReadRateLimitsResponses, AccountReadRateLimitsErrors, ThrowOnError>({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/account/rate-limits',
-    ...options
-});
-
-/**
- * List Codex apps/connectors
- */
-export const appsListApps = <ThrowOnError extends boolean = false>(options?: Options<AppsListAppsData, ThrowOnError>) => (options?.client ?? client).get<AppsListAppsResponses, AppsListAppsErrors, ThrowOnError>({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/apps',
+    url: '/api/files/archive/entry',
     ...options
 });
 
@@ -418,6 +228,214 @@ export const filesUploadFiles = <ThrowOnError extends boolean = false>(options: 
         'Content-Type': null,
         ...options.headers
     }
+});
+
+/**
+ * List runtime settings
+ */
+export const settingsListSettings = <ThrowOnError extends boolean = false>(options?: Options<SettingsListSettingsData, ThrowOnError>) => (options?.client ?? client).get<SettingsListSettingsResponses, SettingsListSettingsErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/settings',
+    ...options
+});
+
+/**
+ * Batch update runtime settings
+ */
+export const settingsUpdateSettings = <ThrowOnError extends boolean = false>(options: Options<SettingsUpdateSettingsData, ThrowOnError>) => (options.client ?? client).patch<SettingsUpdateSettingsResponses, SettingsUpdateSettingsErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/settings',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Reset one runtime setting to env/default
+ */
+export const settingsResetSetting = <ThrowOnError extends boolean = false>(options: Options<SettingsResetSettingData, ThrowOnError>) => (options.client ?? client).delete<SettingsResetSettingResponses, SettingsResetSettingErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/settings/{key}',
+    ...options
+});
+
+/**
+ * Read one runtime setting
+ */
+export const settingsGetSetting = <ThrowOnError extends boolean = false>(options: Options<SettingsGetSettingData, ThrowOnError>) => (options.client ?? client).get<SettingsGetSettingResponses, SettingsGetSettingErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/settings/{key}',
+    ...options
+});
+
+/**
+ * Update one runtime setting
+ */
+export const settingsUpdateSetting = <ThrowOnError extends boolean = false>(options: Options<SettingsUpdateSettingData, ThrowOnError>) => (options.client ?? client).patch<SettingsUpdateSettingResponses, SettingsUpdateSettingErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/settings/{key}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Upload one chat attachment for rich user input
+ */
+export const chatUploadAttachment = <ThrowOnError extends boolean = false>(options: Options<ChatUploadAttachmentData, ThrowOnError>) => (options.client ?? client).post<ChatUploadAttachmentResponses, ChatUploadAttachmentErrors, ThrowOnError>({
+    ...formDataBodySerializer,
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/chat/upload',
+    ...options,
+    headers: {
+        'Content-Type': null,
+        ...options.headers
+    }
+});
+
+/**
+ * Get aggregated Codex runtime status
+ */
+export const codexStatusGetStatus = <ThrowOnError extends boolean = false>(options?: Options<CodexStatusGetStatusData, ThrowOnError>) => (options?.client ?? client).get<CodexStatusGetStatusResponses, CodexStatusGetStatusErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/codex/status',
+    ...options
+});
+
+/**
+ * Update approval policy (hot-reloads all threads)
+ */
+export const codexStatusUpdateApprovalPolicy = <ThrowOnError extends boolean = false>(options: Options<CodexStatusUpdateApprovalPolicyData, ThrowOnError>) => (options.client ?? client).post<CodexStatusUpdateApprovalPolicyResponses, CodexStatusUpdateApprovalPolicyErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/codex/approval-policy',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Update sandbox mode (hot-reloads all threads)
+ */
+export const codexStatusUpdateSandboxMode = <ThrowOnError extends boolean = false>(options: Options<CodexStatusUpdateSandboxModeData, ThrowOnError>) => (options.client ?? client).post<CodexStatusUpdateSandboxModeResponses, CodexStatusUpdateSandboxModeErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/codex/sandbox-mode',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Read Codex config with origin metadata
+ */
+export const codexConfigReadConfig = <ThrowOnError extends boolean = false>(options?: Options<CodexConfigReadConfigData, ThrowOnError>) => (options?.client ?? client).get<CodexConfigReadConfigResponses, CodexConfigReadConfigErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/codex/config',
+    ...options
+});
+
+/**
+ * Update curated Codex config fields
+ */
+export const codexConfigUpdateConfig = <ThrowOnError extends boolean = false>(options: Options<CodexConfigUpdateConfigData, ThrowOnError>) => (options.client ?? client).patch<CodexConfigUpdateConfigResponses, CodexConfigUpdateConfigErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/codex/config',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Read raw user config.toml
+ */
+export const codexConfigReadRawConfig = <ThrowOnError extends boolean = false>(options?: Options<CodexConfigReadRawConfigData, ThrowOnError>) => (options?.client ?? client).get<CodexConfigReadRawConfigResponses, CodexConfigReadRawConfigErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/codex/config/raw',
+    ...options
+});
+
+/**
+ * Write raw user config.toml and reload Codex config
+ */
+export const codexConfigUpdateRawConfig = <ThrowOnError extends boolean = false>(options: Options<CodexConfigUpdateRawConfigData, ThrowOnError>) => (options.client ?? client).put<CodexConfigUpdateRawConfigResponses, CodexConfigUpdateRawConfigErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/codex/config/raw',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Read Codex account state and provider metadata
+ */
+export const accountReadAccount = <ThrowOnError extends boolean = false>(options?: Options<AccountReadAccountData, ThrowOnError>) => (options?.client ?? client).get<AccountReadAccountResponses, AccountReadAccountErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/account',
+    ...options
+});
+
+/**
+ * Start Codex account login
+ */
+export const accountLogin = <ThrowOnError extends boolean = false>(options: Options<AccountLoginData, ThrowOnError>) => (options.client ?? client).post<AccountLoginResponses, AccountLoginErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/account/login',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Cancel a pending Codex account login
+ */
+export const accountCancelLogin = <ThrowOnError extends boolean = false>(options: Options<AccountCancelLoginData, ThrowOnError>) => (options.client ?? client).post<AccountCancelLoginResponses, AccountCancelLoginErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/account/login/cancel',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Logout Codex account
+ */
+export const accountLogout = <ThrowOnError extends boolean = false>(options?: Options<AccountLogoutData, ThrowOnError>) => (options?.client ?? client).post<AccountLogoutResponses, AccountLogoutErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/account/logout',
+    ...options
+});
+
+/**
+ * Read Codex account rate limits
+ */
+export const accountReadRateLimits = <ThrowOnError extends boolean = false>(options?: Options<AccountReadRateLimitsData, ThrowOnError>) => (options?.client ?? client).get<AccountReadRateLimitsResponses, AccountReadRateLimitsErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/account/rate-limits',
+    ...options
+});
+
+/**
+ * List Codex apps/connectors
+ */
+export const appsListApps = <ThrowOnError extends boolean = false>(options?: Options<AppsListAppsData, ThrowOnError>) => (options?.client ?? client).get<AppsListAppsResponses, AppsListAppsErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/apps',
+    ...options
 });
 
 /**
@@ -661,6 +679,15 @@ export const pluginsUninstallPlugin = <ThrowOnError extends boolean = false>(opt
         'Content-Type': 'application/json',
         ...options.headers
     }
+});
+
+/**
+ * Build OnlyOffice viewer config for a file
+ */
+export const onlyOfficeGetConfig = <ThrowOnError extends boolean = false>(options: Options<OnlyOfficeGetConfigData, ThrowOnError>) => (options.client ?? client).get<OnlyOfficeGetConfigResponses, OnlyOfficeGetConfigErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/onlyoffice/config',
+    ...options
 });
 
 /**

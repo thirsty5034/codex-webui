@@ -340,7 +340,6 @@ describe('FilesService', () => {
       );
       expect(result.filename).toBe('hello.txt');
       expect(result.size).toBe(11);
-      result.stream.destroy();
     });
 
     it('should reject directories', async () => {

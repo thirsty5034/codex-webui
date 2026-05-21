@@ -74,7 +74,6 @@ export interface FileDownloadResult {
   path: string;
   filename: string;
   size: number;
-  stream: fsSync.ReadStream;
 }
 
 export interface FileUploadInput {
@@ -681,7 +680,6 @@ export class FilesService implements OnModuleDestroy {
       path: resolved,
       filename: path.basename(resolved),
       size: stat.size,
-      stream: fsSync.createReadStream(resolved),
     };
   }
 

@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { accountCancelLogin, accountLogin, accountLogout, accountReadAccount, accountReadRateLimits, appGetStatus, appsListApps, authLogin, authLogout, chatUploadAttachment, codexConfigReadConfig, codexConfigReadRawConfig, codexConfigUpdateConfig, codexConfigUpdateRawConfig, codexStatusGetStatus, codexStatusUpdateApprovalPolicy, codexStatusUpdateSandboxMode, filesAddRoot, filesCopyPath, filesCreateDirectory, filesCreateFile, filesDeletePath, filesDownloadFile, filesGetMetadata, filesGetRoots, filesMovePath, filesReadFile, filesReadTree, filesRenamePath, filesServeFile, filesUploadFiles, filesWriteFile, logsExportDiagnostics, logsListLogs, mcpServersListServers, mcpServersReloadAll, mcpServersStartOauthLogin, modelsListModels, type Options, pendingApprovalsListPending, pendingApprovalsRespond, pluginsInstallPlugin, pluginsListPlugins, pluginsReadPlugin, pluginsUninstallPlugin, settingsGetSetting, settingsListSettings, settingsResetSetting, settingsUpdateSetting, settingsUpdateSettings, skillsListSkills, skillsWriteSkillConfig, threadsArchiveThread, threadsCompactThread, threadsForkThread, threadsInterruptTurn, threadsListLoadedThreads, threadsListThreads, threadsReadThread, threadsResumeThread, threadsRollbackThread, threadsSetThreadName, threadsStartThread, threadsStartTurn, threadsSteerTurn, threadsUnarchiveThread, tokenUsageReadThreadTokenUsage, turnDiffReadThreadTurnDiffs } from '../sdk.gen';
-import type { AccountCancelLoginData, AccountCancelLoginError, AccountCancelLoginResponse, AccountLoginData, AccountLoginError, AccountLoginResponse, AccountLogoutData, AccountLogoutError, AccountLogoutResponse, AccountReadAccountData, AccountReadAccountError, AccountReadAccountResponse, AccountReadRateLimitsData, AccountReadRateLimitsError, AccountReadRateLimitsResponse, AppGetStatusData, AppGetStatusResponse, AppsListAppsData, AppsListAppsError, AppsListAppsResponse, AuthLoginData, AuthLoginError, AuthLoginResponse, AuthLogoutData, AuthLogoutResponse, ChatUploadAttachmentData, ChatUploadAttachmentError, ChatUploadAttachmentResponse, CodexConfigReadConfigData, CodexConfigReadConfigError, CodexConfigReadConfigResponse, CodexConfigReadRawConfigData, CodexConfigReadRawConfigError, CodexConfigReadRawConfigResponse, CodexConfigUpdateConfigData, CodexConfigUpdateConfigError, CodexConfigUpdateConfigResponse, CodexConfigUpdateRawConfigData, CodexConfigUpdateRawConfigError, CodexConfigUpdateRawConfigResponse, CodexStatusGetStatusData, CodexStatusGetStatusError, CodexStatusGetStatusResponse, CodexStatusUpdateApprovalPolicyData, CodexStatusUpdateApprovalPolicyError, CodexStatusUpdateApprovalPolicyResponse, CodexStatusUpdateSandboxModeData, CodexStatusUpdateSandboxModeError, CodexStatusUpdateSandboxModeResponse, FilesAddRootData, FilesAddRootError, FilesAddRootResponse, FilesCopyPathData, FilesCopyPathError, FilesCopyPathResponse, FilesCreateDirectoryData, FilesCreateDirectoryError, FilesCreateDirectoryResponse, FilesCreateFileData, FilesCreateFileError, FilesCreateFileResponse, FilesDeletePathData, FilesDeletePathError, FilesDeletePathResponse, FilesDownloadFileData, FilesDownloadFileError, FilesGetMetadataData, FilesGetMetadataError, FilesGetMetadataResponse, FilesGetRootsData, FilesGetRootsError, FilesGetRootsResponse, FilesMovePathData, FilesMovePathError, FilesMovePathResponse, FilesReadFileData, FilesReadFileError, FilesReadFileResponse, FilesReadTreeData, FilesReadTreeError, FilesReadTreeResponse, FilesRenamePathData, FilesRenamePathError, FilesRenamePathResponse, FilesServeFileData, FilesServeFileError, FilesUploadFilesData, FilesUploadFilesError, FilesUploadFilesResponse, FilesWriteFileData, FilesWriteFileError, FilesWriteFileResponse, LogsExportDiagnosticsData, LogsExportDiagnosticsError, LogsExportDiagnosticsResponse, LogsListLogsData, LogsListLogsError, LogsListLogsResponse, McpServersListServersData, McpServersListServersError, McpServersListServersResponse, McpServersReloadAllData, McpServersReloadAllError, McpServersReloadAllResponse, McpServersStartOauthLoginData, McpServersStartOauthLoginError, McpServersStartOauthLoginResponse, ModelsListModelsData, ModelsListModelsError, ModelsListModelsResponse, PendingApprovalsListPendingData, PendingApprovalsListPendingResponse, PendingApprovalsRespondData, PendingApprovalsRespondResponse, PluginsInstallPluginData, PluginsInstallPluginError, PluginsInstallPluginResponse, PluginsListPluginsData, PluginsListPluginsError, PluginsListPluginsResponse, PluginsReadPluginData, PluginsReadPluginError, PluginsReadPluginResponse, PluginsUninstallPluginData, PluginsUninstallPluginError, PluginsUninstallPluginResponse, SettingsGetSettingData, SettingsGetSettingError, SettingsGetSettingResponse, SettingsListSettingsData, SettingsListSettingsError, SettingsListSettingsResponse, SettingsResetSettingData, SettingsResetSettingError, SettingsResetSettingResponse, SettingsUpdateSettingData, SettingsUpdateSettingError, SettingsUpdateSettingResponse, SettingsUpdateSettingsData, SettingsUpdateSettingsError, SettingsUpdateSettingsResponse, SkillsListSkillsData, SkillsListSkillsError, SkillsListSkillsResponse, SkillsWriteSkillConfigData, SkillsWriteSkillConfigError, SkillsWriteSkillConfigResponse, ThreadsArchiveThreadData, ThreadsArchiveThreadError, ThreadsArchiveThreadResponse, ThreadsCompactThreadData, ThreadsCompactThreadError, ThreadsCompactThreadResponse, ThreadsForkThreadData, ThreadsForkThreadError, ThreadsForkThreadResponse, ThreadsInterruptTurnData, ThreadsInterruptTurnError, ThreadsInterruptTurnResponse, ThreadsListLoadedThreadsData, ThreadsListLoadedThreadsError, ThreadsListLoadedThreadsResponse, ThreadsListThreadsData, ThreadsListThreadsError, ThreadsListThreadsResponse, ThreadsReadThreadData, ThreadsReadThreadError, ThreadsReadThreadResponse, ThreadsResumeThreadData, ThreadsResumeThreadError, ThreadsResumeThreadResponse, ThreadsRollbackThreadData, ThreadsRollbackThreadError, ThreadsRollbackThreadResponse, ThreadsSetThreadNameData, ThreadsSetThreadNameError, ThreadsSetThreadNameResponse, ThreadsStartThreadData, ThreadsStartThreadError, ThreadsStartThreadResponse, ThreadsStartTurnData, ThreadsStartTurnError, ThreadsStartTurnResponse, ThreadsSteerTurnData, ThreadsSteerTurnError, ThreadsSteerTurnResponse, ThreadsUnarchiveThreadData, ThreadsUnarchiveThreadError, ThreadsUnarchiveThreadResponse, TokenUsageReadThreadTokenUsageData, TokenUsageReadThreadTokenUsageError, TokenUsageReadThreadTokenUsageResponse, TurnDiffReadThreadTurnDiffsData, TurnDiffReadThreadTurnDiffsError, TurnDiffReadThreadTurnDiffsResponse } from '../types.gen';
+import { accountCancelLogin, accountLogin, accountLogout, accountReadAccount, accountReadRateLimits, appGetStatus, appsListApps, archiveListArchive, archiveReadEntry, authLogin, authLogout, chatUploadAttachment, codexConfigReadConfig, codexConfigReadRawConfig, codexConfigUpdateConfig, codexConfigUpdateRawConfig, codexStatusGetStatus, codexStatusUpdateApprovalPolicy, codexStatusUpdateSandboxMode, filesAddRoot, filesCopyPath, filesCreateDirectory, filesCreateFile, filesDeletePath, filesDownloadFile, filesGetMetadata, filesGetRoots, filesMovePath, filesReadFile, filesReadTree, filesRenamePath, filesServeFile, filesUploadFiles, filesWriteFile, logsExportDiagnostics, logsListLogs, mcpServersListServers, mcpServersReloadAll, mcpServersStartOauthLogin, modelsListModels, onlyOfficeGetConfig, type Options, pendingApprovalsListPending, pendingApprovalsRespond, pluginsInstallPlugin, pluginsListPlugins, pluginsReadPlugin, pluginsUninstallPlugin, settingsGetSetting, settingsListSettings, settingsResetSetting, settingsUpdateSetting, settingsUpdateSettings, skillsListSkills, skillsWriteSkillConfig, threadsArchiveThread, threadsCompactThread, threadsForkThread, threadsInterruptTurn, threadsListLoadedThreads, threadsListThreads, threadsReadThread, threadsResumeThread, threadsRollbackThread, threadsSetThreadName, threadsStartThread, threadsStartTurn, threadsSteerTurn, threadsUnarchiveThread, tokenUsageReadThreadTokenUsage, turnDiffReadThreadTurnDiffs } from '../sdk.gen';
+import type { AccountCancelLoginData, AccountCancelLoginError, AccountCancelLoginResponse, AccountLoginData, AccountLoginError, AccountLoginResponse, AccountLogoutData, AccountLogoutError, AccountLogoutResponse, AccountReadAccountData, AccountReadAccountError, AccountReadAccountResponse, AccountReadRateLimitsData, AccountReadRateLimitsError, AccountReadRateLimitsResponse, AppGetStatusData, AppGetStatusResponse, AppsListAppsData, AppsListAppsError, AppsListAppsResponse, ArchiveListArchiveData, ArchiveListArchiveError, ArchiveListArchiveResponse, ArchiveReadEntryData, ArchiveReadEntryError, AuthLoginData, AuthLoginError, AuthLoginResponse, AuthLogoutData, AuthLogoutResponse, ChatUploadAttachmentData, ChatUploadAttachmentError, ChatUploadAttachmentResponse, CodexConfigReadConfigData, CodexConfigReadConfigError, CodexConfigReadConfigResponse, CodexConfigReadRawConfigData, CodexConfigReadRawConfigError, CodexConfigReadRawConfigResponse, CodexConfigUpdateConfigData, CodexConfigUpdateConfigError, CodexConfigUpdateConfigResponse, CodexConfigUpdateRawConfigData, CodexConfigUpdateRawConfigError, CodexConfigUpdateRawConfigResponse, CodexStatusGetStatusData, CodexStatusGetStatusError, CodexStatusGetStatusResponse, CodexStatusUpdateApprovalPolicyData, CodexStatusUpdateApprovalPolicyError, CodexStatusUpdateApprovalPolicyResponse, CodexStatusUpdateSandboxModeData, CodexStatusUpdateSandboxModeError, CodexStatusUpdateSandboxModeResponse, FilesAddRootData, FilesAddRootError, FilesAddRootResponse, FilesCopyPathData, FilesCopyPathError, FilesCopyPathResponse, FilesCreateDirectoryData, FilesCreateDirectoryError, FilesCreateDirectoryResponse, FilesCreateFileData, FilesCreateFileError, FilesCreateFileResponse, FilesDeletePathData, FilesDeletePathError, FilesDeletePathResponse, FilesDownloadFileData, FilesDownloadFileError, FilesGetMetadataData, FilesGetMetadataError, FilesGetMetadataResponse, FilesGetRootsData, FilesGetRootsError, FilesGetRootsResponse, FilesMovePathData, FilesMovePathError, FilesMovePathResponse, FilesReadFileData, FilesReadFileError, FilesReadFileResponse, FilesReadTreeData, FilesReadTreeError, FilesReadTreeResponse, FilesRenamePathData, FilesRenamePathError, FilesRenamePathResponse, FilesServeFileData, FilesServeFileError, FilesUploadFilesData, FilesUploadFilesError, FilesUploadFilesResponse, FilesWriteFileData, FilesWriteFileError, FilesWriteFileResponse, LogsExportDiagnosticsData, LogsExportDiagnosticsError, LogsExportDiagnosticsResponse, LogsListLogsData, LogsListLogsError, LogsListLogsResponse, McpServersListServersData, McpServersListServersError, McpServersListServersResponse, McpServersReloadAllData, McpServersReloadAllError, McpServersReloadAllResponse, McpServersStartOauthLoginData, McpServersStartOauthLoginError, McpServersStartOauthLoginResponse, ModelsListModelsData, ModelsListModelsError, ModelsListModelsResponse, OnlyOfficeGetConfigData, OnlyOfficeGetConfigError, OnlyOfficeGetConfigResponse, PendingApprovalsListPendingData, PendingApprovalsListPendingResponse, PendingApprovalsRespondData, PendingApprovalsRespondResponse, PluginsInstallPluginData, PluginsInstallPluginError, PluginsInstallPluginResponse, PluginsListPluginsData, PluginsListPluginsError, PluginsListPluginsResponse, PluginsReadPluginData, PluginsReadPluginError, PluginsReadPluginResponse, PluginsUninstallPluginData, PluginsUninstallPluginError, PluginsUninstallPluginResponse, SettingsGetSettingData, SettingsGetSettingError, SettingsGetSettingResponse, SettingsListSettingsData, SettingsListSettingsError, SettingsListSettingsResponse, SettingsResetSettingData, SettingsResetSettingError, SettingsResetSettingResponse, SettingsUpdateSettingData, SettingsUpdateSettingError, SettingsUpdateSettingResponse, SettingsUpdateSettingsData, SettingsUpdateSettingsError, SettingsUpdateSettingsResponse, SkillsListSkillsData, SkillsListSkillsError, SkillsListSkillsResponse, SkillsWriteSkillConfigData, SkillsWriteSkillConfigError, SkillsWriteSkillConfigResponse, ThreadsArchiveThreadData, ThreadsArchiveThreadError, ThreadsArchiveThreadResponse, ThreadsCompactThreadData, ThreadsCompactThreadError, ThreadsCompactThreadResponse, ThreadsForkThreadData, ThreadsForkThreadError, ThreadsForkThreadResponse, ThreadsInterruptTurnData, ThreadsInterruptTurnError, ThreadsInterruptTurnResponse, ThreadsListLoadedThreadsData, ThreadsListLoadedThreadsError, ThreadsListLoadedThreadsResponse, ThreadsListThreadsData, ThreadsListThreadsError, ThreadsListThreadsResponse, ThreadsReadThreadData, ThreadsReadThreadError, ThreadsReadThreadResponse, ThreadsResumeThreadData, ThreadsResumeThreadError, ThreadsResumeThreadResponse, ThreadsRollbackThreadData, ThreadsRollbackThreadError, ThreadsRollbackThreadResponse, ThreadsSetThreadNameData, ThreadsSetThreadNameError, ThreadsSetThreadNameResponse, ThreadsStartThreadData, ThreadsStartThreadError, ThreadsStartThreadResponse, ThreadsStartTurnData, ThreadsStartTurnError, ThreadsStartTurnResponse, ThreadsSteerTurnData, ThreadsSteerTurnError, ThreadsSteerTurnResponse, ThreadsUnarchiveThreadData, ThreadsUnarchiveThreadError, ThreadsUnarchiveThreadResponse, TokenUsageReadThreadTokenUsageData, TokenUsageReadThreadTokenUsageError, TokenUsageReadThreadTokenUsageResponse, TurnDiffReadThreadTurnDiffsData, TurnDiffReadThreadTurnDiffsError, TurnDiffReadThreadTurnDiffsResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -91,13 +91,293 @@ export const authLogoutMutation = (options?: Partial<Options<AuthLogoutData>>): 
     return mutationOptions;
 };
 
+export const archiveListArchiveQueryKey = (options: Options<ArchiveListArchiveData>) => createQueryKey('archiveListArchive', options);
+
 /**
- * Upload one chat attachment for rich user input
+ * List archive contents
  */
-export const chatUploadAttachmentMutation = (options?: Partial<Options<ChatUploadAttachmentData>>): UseMutationOptions<ChatUploadAttachmentResponse, ChatUploadAttachmentError, Options<ChatUploadAttachmentData>> => {
-    const mutationOptions: UseMutationOptions<ChatUploadAttachmentResponse, ChatUploadAttachmentError, Options<ChatUploadAttachmentData>> = {
+export const archiveListArchiveOptions = (options: Options<ArchiveListArchiveData>) => queryOptions<ArchiveListArchiveResponse, ArchiveListArchiveError, ArchiveListArchiveResponse, ReturnType<typeof archiveListArchiveQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await archiveListArchive({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: archiveListArchiveQueryKey(options)
+});
+
+export const archiveReadEntryQueryKey = (options: Options<ArchiveReadEntryData>) => createQueryKey('archiveReadEntry', options);
+
+/**
+ * Read one archive entry without extracting to disk
+ */
+export const archiveReadEntryOptions = (options: Options<ArchiveReadEntryData>) => queryOptions<unknown, ArchiveReadEntryError, unknown, ReturnType<typeof archiveReadEntryQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await archiveReadEntry({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: archiveReadEntryQueryKey(options)
+});
+
+export const filesReadTreeQueryKey = (options: Options<FilesReadTreeData>) => createQueryKey('filesReadTree', options);
+
+/**
+ * Read directory tree (one level, lazy load)
+ */
+export const filesReadTreeOptions = (options: Options<FilesReadTreeData>) => queryOptions<FilesReadTreeResponse, FilesReadTreeError, FilesReadTreeResponse, ReturnType<typeof filesReadTreeQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await filesReadTree({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: filesReadTreeQueryKey(options)
+});
+
+export const filesReadFileQueryKey = (options: Options<FilesReadFileData>) => createQueryKey('filesReadFile', options);
+
+/**
+ * Read a text file
+ */
+export const filesReadFileOptions = (options: Options<FilesReadFileData>) => queryOptions<FilesReadFileResponse, FilesReadFileError, FilesReadFileResponse, ReturnType<typeof filesReadFileQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await filesReadFile({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: filesReadFileQueryKey(options)
+});
+
+/**
+ * Create a new file
+ */
+export const filesCreateFileMutation = (options?: Partial<Options<FilesCreateFileData>>): UseMutationOptions<FilesCreateFileResponse, FilesCreateFileError, Options<FilesCreateFileData>> => {
+    const mutationOptions: UseMutationOptions<FilesCreateFileResponse, FilesCreateFileError, Options<FilesCreateFileData>> = {
         mutationFn: async (fnOptions) => {
-            const { data } = await chatUploadAttachment({
+            const { data } = await filesCreateFile({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Create a new directory
+ */
+export const filesCreateDirectoryMutation = (options?: Partial<Options<FilesCreateDirectoryData>>): UseMutationOptions<FilesCreateDirectoryResponse, FilesCreateDirectoryError, Options<FilesCreateDirectoryData>> => {
+    const mutationOptions: UseMutationOptions<FilesCreateDirectoryResponse, FilesCreateDirectoryError, Options<FilesCreateDirectoryData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await filesCreateDirectory({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Write/save a file
+ */
+export const filesWriteFileMutation = (options?: Partial<Options<FilesWriteFileData>>): UseMutationOptions<FilesWriteFileResponse, FilesWriteFileError, Options<FilesWriteFileData>> => {
+    const mutationOptions: UseMutationOptions<FilesWriteFileResponse, FilesWriteFileError, Options<FilesWriteFileData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await filesWriteFile({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Rename a file or directory within the same parent
+ */
+export const filesRenamePathMutation = (options?: Partial<Options<FilesRenamePathData>>): UseMutationOptions<FilesRenamePathResponse, FilesRenamePathError, Options<FilesRenamePathData>> => {
+    const mutationOptions: UseMutationOptions<FilesRenamePathResponse, FilesRenamePathError, Options<FilesRenamePathData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await filesRenamePath({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Copy a file or directory
+ */
+export const filesCopyPathMutation = (options?: Partial<Options<FilesCopyPathData>>): UseMutationOptions<FilesCopyPathResponse, FilesCopyPathError, Options<FilesCopyPathData>> => {
+    const mutationOptions: UseMutationOptions<FilesCopyPathResponse, FilesCopyPathError, Options<FilesCopyPathData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await filesCopyPath({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Move a file or directory
+ */
+export const filesMovePathMutation = (options?: Partial<Options<FilesMovePathData>>): UseMutationOptions<FilesMovePathResponse, FilesMovePathError, Options<FilesMovePathData>> => {
+    const mutationOptions: UseMutationOptions<FilesMovePathResponse, FilesMovePathError, Options<FilesMovePathData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await filesMovePath({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const filesGetMetadataQueryKey = (options: Options<FilesGetMetadataData>) => createQueryKey('filesGetMetadata', options);
+
+/**
+ * Get file/directory metadata
+ */
+export const filesGetMetadataOptions = (options: Options<FilesGetMetadataData>) => queryOptions<FilesGetMetadataResponse, FilesGetMetadataError, FilesGetMetadataResponse, ReturnType<typeof filesGetMetadataQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await filesGetMetadata({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: filesGetMetadataQueryKey(options)
+});
+
+export const filesServeFileQueryKey = (options: Options<FilesServeFileData>) => createQueryKey('filesServeFile', options);
+
+/**
+ * Serve a file inline with correct Content-Type (for img/pdf/etc.)
+ */
+export const filesServeFileOptions = (options: Options<FilesServeFileData>) => queryOptions<unknown, FilesServeFileError, unknown, ReturnType<typeof filesServeFileQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await filesServeFile({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: filesServeFileQueryKey(options)
+});
+
+export const filesDownloadFileQueryKey = (options: Options<FilesDownloadFileData>) => createQueryKey('filesDownloadFile', options);
+
+/**
+ * Download a file
+ */
+export const filesDownloadFileOptions = (options: Options<FilesDownloadFileData>) => queryOptions<unknown, FilesDownloadFileError, unknown, ReturnType<typeof filesDownloadFileQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await filesDownloadFile({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: filesDownloadFileQueryKey(options)
+});
+
+export const filesGetRootsQueryKey = (options?: Options<FilesGetRootsData>) => createQueryKey('filesGetRoots', options);
+
+/**
+ * List configured workspace roots and home directory
+ */
+export const filesGetRootsOptions = (options?: Options<FilesGetRootsData>) => queryOptions<FilesGetRootsResponse, FilesGetRootsError, FilesGetRootsResponse, ReturnType<typeof filesGetRootsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await filesGetRoots({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: filesGetRootsQueryKey(options)
+});
+
+/**
+ * Register a workspace root (e.g. thread cwd)
+ */
+export const filesAddRootMutation = (options?: Partial<Options<FilesAddRootData>>): UseMutationOptions<FilesAddRootResponse, FilesAddRootError, Options<FilesAddRootData>> => {
+    const mutationOptions: UseMutationOptions<FilesAddRootResponse, FilesAddRootError, Options<FilesAddRootData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await filesAddRoot({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Delete a file, symlink, or directory
+ */
+export const filesDeletePathMutation = (options?: Partial<Options<FilesDeletePathData>>): UseMutationOptions<FilesDeletePathResponse, FilesDeletePathError, Options<FilesDeletePathData>> => {
+    const mutationOptions: UseMutationOptions<FilesDeletePathResponse, FilesDeletePathError, Options<FilesDeletePathData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await filesDeletePath({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Upload one or more files into a directory
+ */
+export const filesUploadFilesMutation = (options?: Partial<Options<FilesUploadFilesData>>): UseMutationOptions<FilesUploadFilesResponse, FilesUploadFilesError, Options<FilesUploadFilesData>> => {
+    const mutationOptions: UseMutationOptions<FilesUploadFilesResponse, FilesUploadFilesError, Options<FilesUploadFilesData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await filesUploadFiles({
                 ...options,
                 ...fnOptions,
                 throwOnError: true
@@ -185,6 +465,23 @@ export const settingsUpdateSettingMutation = (options?: Partial<Options<Settings
     const mutationOptions: UseMutationOptions<SettingsUpdateSettingResponse, SettingsUpdateSettingError, Options<SettingsUpdateSettingData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await settingsUpdateSetting({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Upload one chat attachment for rich user input
+ */
+export const chatUploadAttachmentMutation = (options?: Partial<Options<ChatUploadAttachmentData>>): UseMutationOptions<ChatUploadAttachmentResponse, ChatUploadAttachmentError, Options<ChatUploadAttachmentData>> => {
+    const mutationOptions: UseMutationOptions<ChatUploadAttachmentResponse, ChatUploadAttachmentError, Options<ChatUploadAttachmentData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await chatUploadAttachment({
                 ...options,
                 ...fnOptions,
                 throwOnError: true
@@ -477,267 +774,6 @@ export const appsListAppsInfiniteOptions = (options?: Options<AppsListAppsData>)
     },
     queryKey: appsListAppsInfiniteQueryKey(options)
 });
-
-export const filesReadTreeQueryKey = (options: Options<FilesReadTreeData>) => createQueryKey('filesReadTree', options);
-
-/**
- * Read directory tree (one level, lazy load)
- */
-export const filesReadTreeOptions = (options: Options<FilesReadTreeData>) => queryOptions<FilesReadTreeResponse, FilesReadTreeError, FilesReadTreeResponse, ReturnType<typeof filesReadTreeQueryKey>>({
-    queryFn: async ({ queryKey, signal }) => {
-        const { data } = await filesReadTree({
-            ...options,
-            ...queryKey[0],
-            signal,
-            throwOnError: true
-        });
-        return data;
-    },
-    queryKey: filesReadTreeQueryKey(options)
-});
-
-export const filesReadFileQueryKey = (options: Options<FilesReadFileData>) => createQueryKey('filesReadFile', options);
-
-/**
- * Read a text file
- */
-export const filesReadFileOptions = (options: Options<FilesReadFileData>) => queryOptions<FilesReadFileResponse, FilesReadFileError, FilesReadFileResponse, ReturnType<typeof filesReadFileQueryKey>>({
-    queryFn: async ({ queryKey, signal }) => {
-        const { data } = await filesReadFile({
-            ...options,
-            ...queryKey[0],
-            signal,
-            throwOnError: true
-        });
-        return data;
-    },
-    queryKey: filesReadFileQueryKey(options)
-});
-
-/**
- * Create a new file
- */
-export const filesCreateFileMutation = (options?: Partial<Options<FilesCreateFileData>>): UseMutationOptions<FilesCreateFileResponse, FilesCreateFileError, Options<FilesCreateFileData>> => {
-    const mutationOptions: UseMutationOptions<FilesCreateFileResponse, FilesCreateFileError, Options<FilesCreateFileData>> = {
-        mutationFn: async (fnOptions) => {
-            const { data } = await filesCreateFile({
-                ...options,
-                ...fnOptions,
-                throwOnError: true
-            });
-            return data;
-        }
-    };
-    return mutationOptions;
-};
-
-/**
- * Create a new directory
- */
-export const filesCreateDirectoryMutation = (options?: Partial<Options<FilesCreateDirectoryData>>): UseMutationOptions<FilesCreateDirectoryResponse, FilesCreateDirectoryError, Options<FilesCreateDirectoryData>> => {
-    const mutationOptions: UseMutationOptions<FilesCreateDirectoryResponse, FilesCreateDirectoryError, Options<FilesCreateDirectoryData>> = {
-        mutationFn: async (fnOptions) => {
-            const { data } = await filesCreateDirectory({
-                ...options,
-                ...fnOptions,
-                throwOnError: true
-            });
-            return data;
-        }
-    };
-    return mutationOptions;
-};
-
-/**
- * Write/save a file
- */
-export const filesWriteFileMutation = (options?: Partial<Options<FilesWriteFileData>>): UseMutationOptions<FilesWriteFileResponse, FilesWriteFileError, Options<FilesWriteFileData>> => {
-    const mutationOptions: UseMutationOptions<FilesWriteFileResponse, FilesWriteFileError, Options<FilesWriteFileData>> = {
-        mutationFn: async (fnOptions) => {
-            const { data } = await filesWriteFile({
-                ...options,
-                ...fnOptions,
-                throwOnError: true
-            });
-            return data;
-        }
-    };
-    return mutationOptions;
-};
-
-/**
- * Rename a file or directory within the same parent
- */
-export const filesRenamePathMutation = (options?: Partial<Options<FilesRenamePathData>>): UseMutationOptions<FilesRenamePathResponse, FilesRenamePathError, Options<FilesRenamePathData>> => {
-    const mutationOptions: UseMutationOptions<FilesRenamePathResponse, FilesRenamePathError, Options<FilesRenamePathData>> = {
-        mutationFn: async (fnOptions) => {
-            const { data } = await filesRenamePath({
-                ...options,
-                ...fnOptions,
-                throwOnError: true
-            });
-            return data;
-        }
-    };
-    return mutationOptions;
-};
-
-/**
- * Copy a file or directory
- */
-export const filesCopyPathMutation = (options?: Partial<Options<FilesCopyPathData>>): UseMutationOptions<FilesCopyPathResponse, FilesCopyPathError, Options<FilesCopyPathData>> => {
-    const mutationOptions: UseMutationOptions<FilesCopyPathResponse, FilesCopyPathError, Options<FilesCopyPathData>> = {
-        mutationFn: async (fnOptions) => {
-            const { data } = await filesCopyPath({
-                ...options,
-                ...fnOptions,
-                throwOnError: true
-            });
-            return data;
-        }
-    };
-    return mutationOptions;
-};
-
-/**
- * Move a file or directory
- */
-export const filesMovePathMutation = (options?: Partial<Options<FilesMovePathData>>): UseMutationOptions<FilesMovePathResponse, FilesMovePathError, Options<FilesMovePathData>> => {
-    const mutationOptions: UseMutationOptions<FilesMovePathResponse, FilesMovePathError, Options<FilesMovePathData>> = {
-        mutationFn: async (fnOptions) => {
-            const { data } = await filesMovePath({
-                ...options,
-                ...fnOptions,
-                throwOnError: true
-            });
-            return data;
-        }
-    };
-    return mutationOptions;
-};
-
-export const filesGetMetadataQueryKey = (options: Options<FilesGetMetadataData>) => createQueryKey('filesGetMetadata', options);
-
-/**
- * Get file/directory metadata
- */
-export const filesGetMetadataOptions = (options: Options<FilesGetMetadataData>) => queryOptions<FilesGetMetadataResponse, FilesGetMetadataError, FilesGetMetadataResponse, ReturnType<typeof filesGetMetadataQueryKey>>({
-    queryFn: async ({ queryKey, signal }) => {
-        const { data } = await filesGetMetadata({
-            ...options,
-            ...queryKey[0],
-            signal,
-            throwOnError: true
-        });
-        return data;
-    },
-    queryKey: filesGetMetadataQueryKey(options)
-});
-
-export const filesServeFileQueryKey = (options: Options<FilesServeFileData>) => createQueryKey('filesServeFile', options);
-
-/**
- * Serve a file inline with correct Content-Type (for img/pdf/etc.)
- */
-export const filesServeFileOptions = (options: Options<FilesServeFileData>) => queryOptions<unknown, FilesServeFileError, unknown, ReturnType<typeof filesServeFileQueryKey>>({
-    queryFn: async ({ queryKey, signal }) => {
-        const { data } = await filesServeFile({
-            ...options,
-            ...queryKey[0],
-            signal,
-            throwOnError: true
-        });
-        return data;
-    },
-    queryKey: filesServeFileQueryKey(options)
-});
-
-export const filesDownloadFileQueryKey = (options: Options<FilesDownloadFileData>) => createQueryKey('filesDownloadFile', options);
-
-/**
- * Download a file
- */
-export const filesDownloadFileOptions = (options: Options<FilesDownloadFileData>) => queryOptions<unknown, FilesDownloadFileError, unknown, ReturnType<typeof filesDownloadFileQueryKey>>({
-    queryFn: async ({ queryKey, signal }) => {
-        const { data } = await filesDownloadFile({
-            ...options,
-            ...queryKey[0],
-            signal,
-            throwOnError: true
-        });
-        return data;
-    },
-    queryKey: filesDownloadFileQueryKey(options)
-});
-
-export const filesGetRootsQueryKey = (options?: Options<FilesGetRootsData>) => createQueryKey('filesGetRoots', options);
-
-/**
- * List configured workspace roots and home directory
- */
-export const filesGetRootsOptions = (options?: Options<FilesGetRootsData>) => queryOptions<FilesGetRootsResponse, FilesGetRootsError, FilesGetRootsResponse, ReturnType<typeof filesGetRootsQueryKey>>({
-    queryFn: async ({ queryKey, signal }) => {
-        const { data } = await filesGetRoots({
-            ...options,
-            ...queryKey[0],
-            signal,
-            throwOnError: true
-        });
-        return data;
-    },
-    queryKey: filesGetRootsQueryKey(options)
-});
-
-/**
- * Register a workspace root (e.g. thread cwd)
- */
-export const filesAddRootMutation = (options?: Partial<Options<FilesAddRootData>>): UseMutationOptions<FilesAddRootResponse, FilesAddRootError, Options<FilesAddRootData>> => {
-    const mutationOptions: UseMutationOptions<FilesAddRootResponse, FilesAddRootError, Options<FilesAddRootData>> = {
-        mutationFn: async (fnOptions) => {
-            const { data } = await filesAddRoot({
-                ...options,
-                ...fnOptions,
-                throwOnError: true
-            });
-            return data;
-        }
-    };
-    return mutationOptions;
-};
-
-/**
- * Delete a file, symlink, or directory
- */
-export const filesDeletePathMutation = (options?: Partial<Options<FilesDeletePathData>>): UseMutationOptions<FilesDeletePathResponse, FilesDeletePathError, Options<FilesDeletePathData>> => {
-    const mutationOptions: UseMutationOptions<FilesDeletePathResponse, FilesDeletePathError, Options<FilesDeletePathData>> = {
-        mutationFn: async (fnOptions) => {
-            const { data } = await filesDeletePath({
-                ...options,
-                ...fnOptions,
-                throwOnError: true
-            });
-            return data;
-        }
-    };
-    return mutationOptions;
-};
-
-/**
- * Upload one or more files into a directory
- */
-export const filesUploadFilesMutation = (options?: Partial<Options<FilesUploadFilesData>>): UseMutationOptions<FilesUploadFilesResponse, FilesUploadFilesError, Options<FilesUploadFilesData>> => {
-    const mutationOptions: UseMutationOptions<FilesUploadFilesResponse, FilesUploadFilesError, Options<FilesUploadFilesData>> = {
-        mutationFn: async (fnOptions) => {
-            const { data } = await filesUploadFiles({
-                ...options,
-                ...fnOptions,
-                throwOnError: true
-            });
-            return data;
-        }
-    };
-    return mutationOptions;
-};
 
 export const skillsListSkillsQueryKey = (options: Options<SkillsListSkillsData>) => createQueryKey('skillsListSkills', options);
 
@@ -1191,6 +1227,24 @@ export const pluginsUninstallPluginMutation = (options?: Partial<Options<Plugins
     };
     return mutationOptions;
 };
+
+export const onlyOfficeGetConfigQueryKey = (options: Options<OnlyOfficeGetConfigData>) => createQueryKey('onlyOfficeGetConfig', options);
+
+/**
+ * Build OnlyOffice viewer config for a file
+ */
+export const onlyOfficeGetConfigOptions = (options: Options<OnlyOfficeGetConfigData>) => queryOptions<OnlyOfficeGetConfigResponse, OnlyOfficeGetConfigError, OnlyOfficeGetConfigResponse, ReturnType<typeof onlyOfficeGetConfigQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await onlyOfficeGetConfig({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: onlyOfficeGetConfigQueryKey(options)
+});
 
 export const turnDiffReadThreadTurnDiffsQueryKey = (options: Options<TurnDiffReadThreadTurnDiffsData>) => createQueryKey('turnDiffReadThreadTurnDiffs', options);
 

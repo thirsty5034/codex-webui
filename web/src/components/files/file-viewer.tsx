@@ -8,7 +8,7 @@ import { Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { filesGetMetadataOptions } from '@/generated/api/@tanstack/react-query.gen';
 import { useFilesStore } from '@/stores/files-store';
-import { getFileCategory } from '@/lib/file-category';
+import { getFileCategory, isInlineLoadingCategory } from '@/lib/file-category';
 import { FileContentViewer } from './viewers';
 
 export function FileViewer() {
@@ -37,10 +37,10 @@ export function FileViewer() {
     );
   }
 
-  // Image files skip the loading state — they load inline via <img> tag
-  const isImage = getFileCategory(selectedFile) === 'image';
+  // Inline viewers (media, PDF, image, office previews) own their loading state.
+  const loadsInline = isInlineLoadingCategory(getFileCategory(selectedFile));
 
-  if (isLoading && !isImage) {
+  if (isLoading && !loadsInline) {
     return (
       <div className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" />

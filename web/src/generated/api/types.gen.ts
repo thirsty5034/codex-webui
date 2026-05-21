@@ -26,19 +26,135 @@ export type ApiErrorResponseDto = {
     error?: string;
 };
 
-export type ChatUploadResponseDto = {
-    /**
-     * Absolute filesystem path readable by Codex app-server.
-     */
+export type ArchiveEntryDto = {
+    name: string;
     path: string;
-    /**
-     * Stored file size in bytes.
-     */
+    type: 'file' | 'directory';
+    size?: number;
+    compressedSize?: number;
+    mtime?: number;
+    encrypted?: boolean;
+    unsupported?: boolean;
+    children?: Array<ArchiveEntryDto>;
+};
+
+export type ArchiveListResponseDto = {
+    path: string;
+    entries: Array<ArchiveEntryDto>;
+};
+
+export type FileEntryDto = {
+    name: string;
+    path: string;
+    type: 'file' | 'directory';
+    size?: number;
+    mtime?: number;
+};
+
+export type FileReadResponseDto = {
+    content: string;
     size: number;
-    /**
-     * MIME type reported by the multipart request.
-     */
-    mimeType: string;
+};
+
+export type CreateFileRequestDto = {
+    path: string;
+    content?: string;
+    overwrite?: boolean;
+};
+
+export type CreateFileResponseDto = {
+    ok: boolean;
+    path: string;
+    mtime: number;
+};
+
+export type CreateDirectoryRequestDto = {
+    path: string;
+    recursive?: boolean;
+    overwrite?: boolean;
+};
+
+export type CreateDirectoryResponseDto = {
+    ok: boolean;
+    path: string;
+};
+
+export type WriteFileRequestDto = {
+    path: string;
+    content: string;
+    expectedMtime?: number;
+};
+
+export type WriteFileResponseDto = {
+    mtime: number;
+};
+
+export type RenamePathRequestDto = {
+    path: string;
+    newName: string;
+    overwrite?: boolean;
+};
+
+export type RenamePathResponseDto = {
+    ok: boolean;
+    oldPath: string;
+    newPath: string;
+};
+
+export type CopyPathRequestDto = {
+    sourcePath: string;
+    destinationPath: string;
+    overwrite?: boolean;
+};
+
+export type CopyPathResponseDto = {
+    ok: boolean;
+    sourcePath: string;
+    destinationPath: string;
+};
+
+export type MovePathRequestDto = {
+    sourcePath: string;
+    destinationPath: string;
+    overwrite?: boolean;
+};
+
+export type MovePathResponseDto = {
+    ok: boolean;
+    oldPath: string;
+    newPath: string;
+};
+
+export type FileMetadataDto = {
+    path: string;
+    name: string;
+    type: 'file' | 'directory' | 'symlink' | 'other';
+    size: number;
+    mtime: number;
+    permissions: string;
+};
+
+export type WorkspaceRootsResponseDto = {
+    roots: Array<string>;
+    homeDir: string;
+};
+
+export type AddWorkspaceRootRequestDto = {
+    root: string;
+};
+
+export type OkResponseDto = {
+    ok: boolean;
+};
+
+export type UploadedFileDto = {
+    path: string;
+    size: number;
+};
+
+export type UploadFilesResponseDto = {
+    ok: boolean;
+    files: Array<UploadedFileDto>;
 };
 
 export type SettingConstraintsDto = {
@@ -98,6 +214,21 @@ export type UpdateSettingDto = {
     value: string | number | boolean | Array<unknown> | {
         [key: string]: unknown;
     } | null;
+};
+
+export type ChatUploadResponseDto = {
+    /**
+     * Absolute filesystem path readable by Codex app-server.
+     */
+    path: string;
+    /**
+     * Stored file size in bytes.
+     */
+    size: number;
+    /**
+     * MIME type reported by the multipart request.
+     */
+    mimeType: string;
 };
 
 export type CodexStatusErrorDto = {
@@ -365,120 +496,6 @@ export type AppInfoDto = {
 export type AppsListResponseDto = {
     data: Array<AppInfoDto>;
     nextCursor: string | null;
-};
-
-export type FileEntryDto = {
-    name: string;
-    path: string;
-    type: 'file' | 'directory';
-    size?: number;
-    mtime?: number;
-};
-
-export type FileReadResponseDto = {
-    content: string;
-    size: number;
-};
-
-export type CreateFileRequestDto = {
-    path: string;
-    content?: string;
-    overwrite?: boolean;
-};
-
-export type CreateFileResponseDto = {
-    ok: boolean;
-    path: string;
-    mtime: number;
-};
-
-export type CreateDirectoryRequestDto = {
-    path: string;
-    recursive?: boolean;
-    overwrite?: boolean;
-};
-
-export type CreateDirectoryResponseDto = {
-    ok: boolean;
-    path: string;
-};
-
-export type WriteFileRequestDto = {
-    path: string;
-    content: string;
-    expectedMtime?: number;
-};
-
-export type WriteFileResponseDto = {
-    mtime: number;
-};
-
-export type RenamePathRequestDto = {
-    path: string;
-    newName: string;
-    overwrite?: boolean;
-};
-
-export type RenamePathResponseDto = {
-    ok: boolean;
-    oldPath: string;
-    newPath: string;
-};
-
-export type CopyPathRequestDto = {
-    sourcePath: string;
-    destinationPath: string;
-    overwrite?: boolean;
-};
-
-export type CopyPathResponseDto = {
-    ok: boolean;
-    sourcePath: string;
-    destinationPath: string;
-};
-
-export type MovePathRequestDto = {
-    sourcePath: string;
-    destinationPath: string;
-    overwrite?: boolean;
-};
-
-export type MovePathResponseDto = {
-    ok: boolean;
-    oldPath: string;
-    newPath: string;
-};
-
-export type FileMetadataDto = {
-    path: string;
-    name: string;
-    type: 'file' | 'directory' | 'symlink' | 'other';
-    size: number;
-    mtime: number;
-    permissions: string;
-};
-
-export type WorkspaceRootsResponseDto = {
-    roots: Array<string>;
-    homeDir: string;
-};
-
-export type AddWorkspaceRootRequestDto = {
-    root: string;
-};
-
-export type OkResponseDto = {
-    ok: boolean;
-};
-
-export type UploadedFileDto = {
-    path: string;
-    size: number;
-};
-
-export type UploadFilesResponseDto = {
-    ok: boolean;
-    files: Array<UploadedFileDto>;
 };
 
 export type SkillsListResponseDto = {
@@ -1238,6 +1255,13 @@ export type PluginUninstallResponseDto = {
     [key: string]: unknown;
 };
 
+export type OnlyOfficeConfigResponseDto = {
+    scriptUrl: string;
+    config: {
+        [key: string]: unknown;
+    };
+};
+
 export type TurnDiffEntryDto = {
     turnId: string;
     diff: string;
@@ -1346,397 +1370,48 @@ export type AuthLogoutResponses = {
 
 export type AuthLogoutResponse = AuthLogoutResponses[keyof AuthLogoutResponses];
 
-export type ChatUploadAttachmentData = {
-    body: {
-        file: Blob | File;
+export type ArchiveListArchiveData = {
+    body?: never;
+    path?: never;
+    query: {
+        path: string;
     };
-    path?: never;
-    query?: never;
-    url: '/api/chat/upload';
+    url: '/api/files/archive/list';
 };
 
-export type ChatUploadAttachmentErrors = {
+export type ArchiveListArchiveErrors = {
     400: ApiErrorResponseDto;
     401: ApiErrorResponseDto;
 };
 
-export type ChatUploadAttachmentError = ChatUploadAttachmentErrors[keyof ChatUploadAttachmentErrors];
+export type ArchiveListArchiveError = ArchiveListArchiveErrors[keyof ArchiveListArchiveErrors];
 
-export type ChatUploadAttachmentResponses = {
-    201: ChatUploadResponseDto;
+export type ArchiveListArchiveResponses = {
+    200: ArchiveListResponseDto;
 };
 
-export type ChatUploadAttachmentResponse = ChatUploadAttachmentResponses[keyof ChatUploadAttachmentResponses];
+export type ArchiveListArchiveResponse = ArchiveListArchiveResponses[keyof ArchiveListArchiveResponses];
 
-export type SettingsListSettingsData = {
+export type ArchiveReadEntryData = {
     body?: never;
     path?: never;
-    query?: {
-        category?: string;
+    query: {
+        path: string;
+        entry: string;
     };
-    url: '/api/settings';
+    url: '/api/files/archive/entry';
 };
 
-export type SettingsListSettingsErrors = {
+export type ArchiveReadEntryErrors = {
     400: ApiErrorResponseDto;
     401: ApiErrorResponseDto;
 };
 
-export type SettingsListSettingsError = SettingsListSettingsErrors[keyof SettingsListSettingsErrors];
+export type ArchiveReadEntryError = ArchiveReadEntryErrors[keyof ArchiveReadEntryErrors];
 
-export type SettingsListSettingsResponses = {
-    200: SettingsListResponseDto;
+export type ArchiveReadEntryResponses = {
+    200: unknown;
 };
-
-export type SettingsListSettingsResponse = SettingsListSettingsResponses[keyof SettingsListSettingsResponses];
-
-export type SettingsUpdateSettingsData = {
-    body: BatchUpdateSettingsDto;
-    path?: never;
-    query?: never;
-    url: '/api/settings';
-};
-
-export type SettingsUpdateSettingsErrors = {
-    400: ApiErrorResponseDto;
-    401: ApiErrorResponseDto;
-};
-
-export type SettingsUpdateSettingsError = SettingsUpdateSettingsErrors[keyof SettingsUpdateSettingsErrors];
-
-export type SettingsUpdateSettingsResponses = {
-    200: SettingsListResponseDto;
-};
-
-export type SettingsUpdateSettingsResponse = SettingsUpdateSettingsResponses[keyof SettingsUpdateSettingsResponses];
-
-export type SettingsResetSettingData = {
-    body?: never;
-    path: {
-        key: string;
-    };
-    query?: never;
-    url: '/api/settings/{key}';
-};
-
-export type SettingsResetSettingErrors = {
-    400: ApiErrorResponseDto;
-    401: ApiErrorResponseDto;
-};
-
-export type SettingsResetSettingError = SettingsResetSettingErrors[keyof SettingsResetSettingErrors];
-
-export type SettingsResetSettingResponses = {
-    200: SettingDto;
-};
-
-export type SettingsResetSettingResponse = SettingsResetSettingResponses[keyof SettingsResetSettingResponses];
-
-export type SettingsGetSettingData = {
-    body?: never;
-    path: {
-        key: string;
-    };
-    query?: never;
-    url: '/api/settings/{key}';
-};
-
-export type SettingsGetSettingErrors = {
-    400: ApiErrorResponseDto;
-    401: ApiErrorResponseDto;
-};
-
-export type SettingsGetSettingError = SettingsGetSettingErrors[keyof SettingsGetSettingErrors];
-
-export type SettingsGetSettingResponses = {
-    200: SettingDto;
-};
-
-export type SettingsGetSettingResponse = SettingsGetSettingResponses[keyof SettingsGetSettingResponses];
-
-export type SettingsUpdateSettingData = {
-    body: UpdateSettingDto;
-    path: {
-        key: string;
-    };
-    query?: never;
-    url: '/api/settings/{key}';
-};
-
-export type SettingsUpdateSettingErrors = {
-    400: ApiErrorResponseDto;
-    401: ApiErrorResponseDto;
-};
-
-export type SettingsUpdateSettingError = SettingsUpdateSettingErrors[keyof SettingsUpdateSettingErrors];
-
-export type SettingsUpdateSettingResponses = {
-    200: SettingDto;
-};
-
-export type SettingsUpdateSettingResponse = SettingsUpdateSettingResponses[keyof SettingsUpdateSettingResponses];
-
-export type CodexStatusGetStatusData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/codex/status';
-};
-
-export type CodexStatusGetStatusErrors = {
-    401: ApiErrorResponseDto;
-};
-
-export type CodexStatusGetStatusError = CodexStatusGetStatusErrors[keyof CodexStatusGetStatusErrors];
-
-export type CodexStatusGetStatusResponses = {
-    200: CodexStatusResponseDto;
-};
-
-export type CodexStatusGetStatusResponse = CodexStatusGetStatusResponses[keyof CodexStatusGetStatusResponses];
-
-export type CodexStatusUpdateApprovalPolicyData = {
-    body: UpdateApprovalPolicyDto;
-    path?: never;
-    query?: never;
-    url: '/api/codex/approval-policy';
-};
-
-export type CodexStatusUpdateApprovalPolicyErrors = {
-    400: ApiErrorResponseDto;
-    401: ApiErrorResponseDto;
-};
-
-export type CodexStatusUpdateApprovalPolicyError = CodexStatusUpdateApprovalPolicyErrors[keyof CodexStatusUpdateApprovalPolicyErrors];
-
-export type CodexStatusUpdateApprovalPolicyResponses = {
-    204: void;
-};
-
-export type CodexStatusUpdateApprovalPolicyResponse = CodexStatusUpdateApprovalPolicyResponses[keyof CodexStatusUpdateApprovalPolicyResponses];
-
-export type CodexStatusUpdateSandboxModeData = {
-    body: UpdateSandboxModeDto;
-    path?: never;
-    query?: never;
-    url: '/api/codex/sandbox-mode';
-};
-
-export type CodexStatusUpdateSandboxModeErrors = {
-    400: ApiErrorResponseDto;
-    401: ApiErrorResponseDto;
-};
-
-export type CodexStatusUpdateSandboxModeError = CodexStatusUpdateSandboxModeErrors[keyof CodexStatusUpdateSandboxModeErrors];
-
-export type CodexStatusUpdateSandboxModeResponses = {
-    204: void;
-};
-
-export type CodexStatusUpdateSandboxModeResponse = CodexStatusUpdateSandboxModeResponses[keyof CodexStatusUpdateSandboxModeResponses];
-
-export type CodexConfigReadConfigData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/codex/config';
-};
-
-export type CodexConfigReadConfigErrors = {
-    401: ApiErrorResponseDto;
-};
-
-export type CodexConfigReadConfigError = CodexConfigReadConfigErrors[keyof CodexConfigReadConfigErrors];
-
-export type CodexConfigReadConfigResponses = {
-    200: CodexConfigResponseDto;
-};
-
-export type CodexConfigReadConfigResponse = CodexConfigReadConfigResponses[keyof CodexConfigReadConfigResponses];
-
-export type CodexConfigUpdateConfigData = {
-    body: UpdateCodexConfigDto;
-    path?: never;
-    query?: never;
-    url: '/api/codex/config';
-};
-
-export type CodexConfigUpdateConfigErrors = {
-    400: ApiErrorResponseDto;
-    401: ApiErrorResponseDto;
-};
-
-export type CodexConfigUpdateConfigError = CodexConfigUpdateConfigErrors[keyof CodexConfigUpdateConfigErrors];
-
-export type CodexConfigUpdateConfigResponses = {
-    200: CodexConfigResponseDto;
-};
-
-export type CodexConfigUpdateConfigResponse = CodexConfigUpdateConfigResponses[keyof CodexConfigUpdateConfigResponses];
-
-export type CodexConfigReadRawConfigData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/codex/config/raw';
-};
-
-export type CodexConfigReadRawConfigErrors = {
-    401: ApiErrorResponseDto;
-};
-
-export type CodexConfigReadRawConfigError = CodexConfigReadRawConfigErrors[keyof CodexConfigReadRawConfigErrors];
-
-export type CodexConfigReadRawConfigResponses = {
-    200: RawConfigResponseDto;
-};
-
-export type CodexConfigReadRawConfigResponse = CodexConfigReadRawConfigResponses[keyof CodexConfigReadRawConfigResponses];
-
-export type CodexConfigUpdateRawConfigData = {
-    body: UpdateRawConfigDto;
-    path?: never;
-    query?: never;
-    url: '/api/codex/config/raw';
-};
-
-export type CodexConfigUpdateRawConfigErrors = {
-    400: ApiErrorResponseDto;
-    401: ApiErrorResponseDto;
-};
-
-export type CodexConfigUpdateRawConfigError = CodexConfigUpdateRawConfigErrors[keyof CodexConfigUpdateRawConfigErrors];
-
-export type CodexConfigUpdateRawConfigResponses = {
-    200: RawConfigWriteResponseDto;
-};
-
-export type CodexConfigUpdateRawConfigResponse = CodexConfigUpdateRawConfigResponses[keyof CodexConfigUpdateRawConfigResponses];
-
-export type AccountReadAccountData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/account';
-};
-
-export type AccountReadAccountErrors = {
-    400: ApiErrorResponseDto;
-    401: ApiErrorResponseDto;
-};
-
-export type AccountReadAccountError = AccountReadAccountErrors[keyof AccountReadAccountErrors];
-
-export type AccountReadAccountResponses = {
-    200: AccountReadResponseDto;
-};
-
-export type AccountReadAccountResponse = AccountReadAccountResponses[keyof AccountReadAccountResponses];
-
-export type AccountLoginData = {
-    body: LoginAccountDto;
-    path?: never;
-    query?: never;
-    url: '/api/account/login';
-};
-
-export type AccountLoginErrors = {
-    400: ApiErrorResponseDto;
-    401: ApiErrorResponseDto;
-};
-
-export type AccountLoginError = AccountLoginErrors[keyof AccountLoginErrors];
-
-export type AccountLoginResponses = {
-    200: LoginAccountResponseDto;
-};
-
-export type AccountLoginResponse = AccountLoginResponses[keyof AccountLoginResponses];
-
-export type AccountCancelLoginData = {
-    body: CancelLoginAccountDto;
-    path?: never;
-    query?: never;
-    url: '/api/account/login/cancel';
-};
-
-export type AccountCancelLoginErrors = {
-    400: ApiErrorResponseDto;
-    401: ApiErrorResponseDto;
-};
-
-export type AccountCancelLoginError = AccountCancelLoginErrors[keyof AccountCancelLoginErrors];
-
-export type AccountCancelLoginResponses = {
-    204: void;
-};
-
-export type AccountCancelLoginResponse = AccountCancelLoginResponses[keyof AccountCancelLoginResponses];
-
-export type AccountLogoutData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/account/logout';
-};
-
-export type AccountLogoutErrors = {
-    400: ApiErrorResponseDto;
-    401: ApiErrorResponseDto;
-};
-
-export type AccountLogoutError = AccountLogoutErrors[keyof AccountLogoutErrors];
-
-export type AccountLogoutResponses = {
-    204: void;
-};
-
-export type AccountLogoutResponse = AccountLogoutResponses[keyof AccountLogoutResponses];
-
-export type AccountReadRateLimitsData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/account/rate-limits';
-};
-
-export type AccountReadRateLimitsErrors = {
-    400: ApiErrorResponseDto;
-    401: ApiErrorResponseDto;
-};
-
-export type AccountReadRateLimitsError = AccountReadRateLimitsErrors[keyof AccountReadRateLimitsErrors];
-
-export type AccountReadRateLimitsResponses = {
-    200: AccountRateLimitsResponseDto;
-};
-
-export type AccountReadRateLimitsResponse = AccountReadRateLimitsResponses[keyof AccountReadRateLimitsResponses];
-
-export type AppsListAppsData = {
-    body?: never;
-    path?: never;
-    query?: {
-        cursor?: string;
-        limit?: number;
-        threadId?: string;
-        forceRefetch?: boolean;
-    };
-    url: '/api/apps';
-};
-
-export type AppsListAppsErrors = {
-    400: ApiErrorResponseDto;
-    401: ApiErrorResponseDto;
-};
-
-export type AppsListAppsError = AppsListAppsErrors[keyof AppsListAppsErrors];
-
-export type AppsListAppsResponses = {
-    200: AppsListResponseDto;
-};
-
-export type AppsListAppsResponse = AppsListAppsResponses[keyof AppsListAppsResponses];
 
 export type FilesReadTreeData = {
     body?: never;
@@ -2089,6 +1764,398 @@ export type FilesUploadFilesResponses = {
 };
 
 export type FilesUploadFilesResponse = FilesUploadFilesResponses[keyof FilesUploadFilesResponses];
+
+export type SettingsListSettingsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        category?: string;
+    };
+    url: '/api/settings';
+};
+
+export type SettingsListSettingsErrors = {
+    400: ApiErrorResponseDto;
+    401: ApiErrorResponseDto;
+};
+
+export type SettingsListSettingsError = SettingsListSettingsErrors[keyof SettingsListSettingsErrors];
+
+export type SettingsListSettingsResponses = {
+    200: SettingsListResponseDto;
+};
+
+export type SettingsListSettingsResponse = SettingsListSettingsResponses[keyof SettingsListSettingsResponses];
+
+export type SettingsUpdateSettingsData = {
+    body: BatchUpdateSettingsDto;
+    path?: never;
+    query?: never;
+    url: '/api/settings';
+};
+
+export type SettingsUpdateSettingsErrors = {
+    400: ApiErrorResponseDto;
+    401: ApiErrorResponseDto;
+};
+
+export type SettingsUpdateSettingsError = SettingsUpdateSettingsErrors[keyof SettingsUpdateSettingsErrors];
+
+export type SettingsUpdateSettingsResponses = {
+    200: SettingsListResponseDto;
+};
+
+export type SettingsUpdateSettingsResponse = SettingsUpdateSettingsResponses[keyof SettingsUpdateSettingsResponses];
+
+export type SettingsResetSettingData = {
+    body?: never;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/settings/{key}';
+};
+
+export type SettingsResetSettingErrors = {
+    400: ApiErrorResponseDto;
+    401: ApiErrorResponseDto;
+};
+
+export type SettingsResetSettingError = SettingsResetSettingErrors[keyof SettingsResetSettingErrors];
+
+export type SettingsResetSettingResponses = {
+    200: SettingDto;
+};
+
+export type SettingsResetSettingResponse = SettingsResetSettingResponses[keyof SettingsResetSettingResponses];
+
+export type SettingsGetSettingData = {
+    body?: never;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/settings/{key}';
+};
+
+export type SettingsGetSettingErrors = {
+    400: ApiErrorResponseDto;
+    401: ApiErrorResponseDto;
+};
+
+export type SettingsGetSettingError = SettingsGetSettingErrors[keyof SettingsGetSettingErrors];
+
+export type SettingsGetSettingResponses = {
+    200: SettingDto;
+};
+
+export type SettingsGetSettingResponse = SettingsGetSettingResponses[keyof SettingsGetSettingResponses];
+
+export type SettingsUpdateSettingData = {
+    body: UpdateSettingDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/settings/{key}';
+};
+
+export type SettingsUpdateSettingErrors = {
+    400: ApiErrorResponseDto;
+    401: ApiErrorResponseDto;
+};
+
+export type SettingsUpdateSettingError = SettingsUpdateSettingErrors[keyof SettingsUpdateSettingErrors];
+
+export type SettingsUpdateSettingResponses = {
+    200: SettingDto;
+};
+
+export type SettingsUpdateSettingResponse = SettingsUpdateSettingResponses[keyof SettingsUpdateSettingResponses];
+
+export type ChatUploadAttachmentData = {
+    body: {
+        file: Blob | File;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/chat/upload';
+};
+
+export type ChatUploadAttachmentErrors = {
+    400: ApiErrorResponseDto;
+    401: ApiErrorResponseDto;
+};
+
+export type ChatUploadAttachmentError = ChatUploadAttachmentErrors[keyof ChatUploadAttachmentErrors];
+
+export type ChatUploadAttachmentResponses = {
+    201: ChatUploadResponseDto;
+};
+
+export type ChatUploadAttachmentResponse = ChatUploadAttachmentResponses[keyof ChatUploadAttachmentResponses];
+
+export type CodexStatusGetStatusData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/codex/status';
+};
+
+export type CodexStatusGetStatusErrors = {
+    401: ApiErrorResponseDto;
+};
+
+export type CodexStatusGetStatusError = CodexStatusGetStatusErrors[keyof CodexStatusGetStatusErrors];
+
+export type CodexStatusGetStatusResponses = {
+    200: CodexStatusResponseDto;
+};
+
+export type CodexStatusGetStatusResponse = CodexStatusGetStatusResponses[keyof CodexStatusGetStatusResponses];
+
+export type CodexStatusUpdateApprovalPolicyData = {
+    body: UpdateApprovalPolicyDto;
+    path?: never;
+    query?: never;
+    url: '/api/codex/approval-policy';
+};
+
+export type CodexStatusUpdateApprovalPolicyErrors = {
+    400: ApiErrorResponseDto;
+    401: ApiErrorResponseDto;
+};
+
+export type CodexStatusUpdateApprovalPolicyError = CodexStatusUpdateApprovalPolicyErrors[keyof CodexStatusUpdateApprovalPolicyErrors];
+
+export type CodexStatusUpdateApprovalPolicyResponses = {
+    204: void;
+};
+
+export type CodexStatusUpdateApprovalPolicyResponse = CodexStatusUpdateApprovalPolicyResponses[keyof CodexStatusUpdateApprovalPolicyResponses];
+
+export type CodexStatusUpdateSandboxModeData = {
+    body: UpdateSandboxModeDto;
+    path?: never;
+    query?: never;
+    url: '/api/codex/sandbox-mode';
+};
+
+export type CodexStatusUpdateSandboxModeErrors = {
+    400: ApiErrorResponseDto;
+    401: ApiErrorResponseDto;
+};
+
+export type CodexStatusUpdateSandboxModeError = CodexStatusUpdateSandboxModeErrors[keyof CodexStatusUpdateSandboxModeErrors];
+
+export type CodexStatusUpdateSandboxModeResponses = {
+    204: void;
+};
+
+export type CodexStatusUpdateSandboxModeResponse = CodexStatusUpdateSandboxModeResponses[keyof CodexStatusUpdateSandboxModeResponses];
+
+export type CodexConfigReadConfigData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/codex/config';
+};
+
+export type CodexConfigReadConfigErrors = {
+    401: ApiErrorResponseDto;
+};
+
+export type CodexConfigReadConfigError = CodexConfigReadConfigErrors[keyof CodexConfigReadConfigErrors];
+
+export type CodexConfigReadConfigResponses = {
+    200: CodexConfigResponseDto;
+};
+
+export type CodexConfigReadConfigResponse = CodexConfigReadConfigResponses[keyof CodexConfigReadConfigResponses];
+
+export type CodexConfigUpdateConfigData = {
+    body: UpdateCodexConfigDto;
+    path?: never;
+    query?: never;
+    url: '/api/codex/config';
+};
+
+export type CodexConfigUpdateConfigErrors = {
+    400: ApiErrorResponseDto;
+    401: ApiErrorResponseDto;
+};
+
+export type CodexConfigUpdateConfigError = CodexConfigUpdateConfigErrors[keyof CodexConfigUpdateConfigErrors];
+
+export type CodexConfigUpdateConfigResponses = {
+    200: CodexConfigResponseDto;
+};
+
+export type CodexConfigUpdateConfigResponse = CodexConfigUpdateConfigResponses[keyof CodexConfigUpdateConfigResponses];
+
+export type CodexConfigReadRawConfigData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/codex/config/raw';
+};
+
+export type CodexConfigReadRawConfigErrors = {
+    401: ApiErrorResponseDto;
+};
+
+export type CodexConfigReadRawConfigError = CodexConfigReadRawConfigErrors[keyof CodexConfigReadRawConfigErrors];
+
+export type CodexConfigReadRawConfigResponses = {
+    200: RawConfigResponseDto;
+};
+
+export type CodexConfigReadRawConfigResponse = CodexConfigReadRawConfigResponses[keyof CodexConfigReadRawConfigResponses];
+
+export type CodexConfigUpdateRawConfigData = {
+    body: UpdateRawConfigDto;
+    path?: never;
+    query?: never;
+    url: '/api/codex/config/raw';
+};
+
+export type CodexConfigUpdateRawConfigErrors = {
+    400: ApiErrorResponseDto;
+    401: ApiErrorResponseDto;
+};
+
+export type CodexConfigUpdateRawConfigError = CodexConfigUpdateRawConfigErrors[keyof CodexConfigUpdateRawConfigErrors];
+
+export type CodexConfigUpdateRawConfigResponses = {
+    200: RawConfigWriteResponseDto;
+};
+
+export type CodexConfigUpdateRawConfigResponse = CodexConfigUpdateRawConfigResponses[keyof CodexConfigUpdateRawConfigResponses];
+
+export type AccountReadAccountData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/account';
+};
+
+export type AccountReadAccountErrors = {
+    400: ApiErrorResponseDto;
+    401: ApiErrorResponseDto;
+};
+
+export type AccountReadAccountError = AccountReadAccountErrors[keyof AccountReadAccountErrors];
+
+export type AccountReadAccountResponses = {
+    200: AccountReadResponseDto;
+};
+
+export type AccountReadAccountResponse = AccountReadAccountResponses[keyof AccountReadAccountResponses];
+
+export type AccountLoginData = {
+    body: LoginAccountDto;
+    path?: never;
+    query?: never;
+    url: '/api/account/login';
+};
+
+export type AccountLoginErrors = {
+    400: ApiErrorResponseDto;
+    401: ApiErrorResponseDto;
+};
+
+export type AccountLoginError = AccountLoginErrors[keyof AccountLoginErrors];
+
+export type AccountLoginResponses = {
+    200: LoginAccountResponseDto;
+};
+
+export type AccountLoginResponse = AccountLoginResponses[keyof AccountLoginResponses];
+
+export type AccountCancelLoginData = {
+    body: CancelLoginAccountDto;
+    path?: never;
+    query?: never;
+    url: '/api/account/login/cancel';
+};
+
+export type AccountCancelLoginErrors = {
+    400: ApiErrorResponseDto;
+    401: ApiErrorResponseDto;
+};
+
+export type AccountCancelLoginError = AccountCancelLoginErrors[keyof AccountCancelLoginErrors];
+
+export type AccountCancelLoginResponses = {
+    204: void;
+};
+
+export type AccountCancelLoginResponse = AccountCancelLoginResponses[keyof AccountCancelLoginResponses];
+
+export type AccountLogoutData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/account/logout';
+};
+
+export type AccountLogoutErrors = {
+    400: ApiErrorResponseDto;
+    401: ApiErrorResponseDto;
+};
+
+export type AccountLogoutError = AccountLogoutErrors[keyof AccountLogoutErrors];
+
+export type AccountLogoutResponses = {
+    204: void;
+};
+
+export type AccountLogoutResponse = AccountLogoutResponses[keyof AccountLogoutResponses];
+
+export type AccountReadRateLimitsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/account/rate-limits';
+};
+
+export type AccountReadRateLimitsErrors = {
+    400: ApiErrorResponseDto;
+    401: ApiErrorResponseDto;
+};
+
+export type AccountReadRateLimitsError = AccountReadRateLimitsErrors[keyof AccountReadRateLimitsErrors];
+
+export type AccountReadRateLimitsResponses = {
+    200: AccountRateLimitsResponseDto;
+};
+
+export type AccountReadRateLimitsResponse = AccountReadRateLimitsResponses[keyof AccountReadRateLimitsResponses];
+
+export type AppsListAppsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        cursor?: string;
+        limit?: number;
+        threadId?: string;
+        forceRefetch?: boolean;
+    };
+    url: '/api/apps';
+};
+
+export type AppsListAppsErrors = {
+    400: ApiErrorResponseDto;
+    401: ApiErrorResponseDto;
+};
+
+export type AppsListAppsError = AppsListAppsErrors[keyof AppsListAppsErrors];
+
+export type AppsListAppsResponses = {
+    200: AppsListResponseDto;
+};
+
+export type AppsListAppsResponse = AppsListAppsResponses[keyof AppsListAppsResponses];
 
 export type SkillsListSkillsData = {
     body?: never;
@@ -2577,6 +2644,28 @@ export type PluginsUninstallPluginResponses = {
 };
 
 export type PluginsUninstallPluginResponse = PluginsUninstallPluginResponses[keyof PluginsUninstallPluginResponses];
+
+export type OnlyOfficeGetConfigData = {
+    body?: never;
+    path?: never;
+    query: {
+        path: string;
+    };
+    url: '/api/onlyoffice/config';
+};
+
+export type OnlyOfficeGetConfigErrors = {
+    400: ApiErrorResponseDto;
+    401: ApiErrorResponseDto;
+};
+
+export type OnlyOfficeGetConfigError = OnlyOfficeGetConfigErrors[keyof OnlyOfficeGetConfigErrors];
+
+export type OnlyOfficeGetConfigResponses = {
+    200: OnlyOfficeConfigResponseDto;
+};
+
+export type OnlyOfficeGetConfigResponse = OnlyOfficeGetConfigResponses[keyof OnlyOfficeGetConfigResponses];
 
 export type TurnDiffReadThreadTurnDiffsData = {
     body?: never;

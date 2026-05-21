@@ -29,11 +29,17 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import type { FastifyReply, FastifyRequest } from 'fastify';
+import * as fsSync from 'node:fs';
 import type { Readable } from 'node:stream';
 import {
   ApiErrorResponseDto,
   OkResponseDto,
 } from '../common/dto/api-responses.dto';
+import {
+  guessMimeType,
+  sendRangedStream,
+  singleHeaderValue,
+} from '../preview/file-response';
 import { FilesService, type FileUploadInput } from './files.service';
 import {
   AddWorkspaceRootRequestDto,
@@ -230,15 +236,13 @@ export class FilesController {
   })
   @ApiProduces('application/octet-stream')
   @ApiBadRequestResponse({ type: ApiErrorResponseDto })
-  async serveFile(@Query('path') filePath: string, @Res() reply: FastifyReply) {
+  async serveFile(
+    @Query('path') filePath: string,
+    @Req() request: FastifyRequest,
+    @Res() reply: FastifyReply,
+  ) {
     const download = await this.filesService.prepareDownload(filePath);
     const mimeType = guessMimeType(download.filename);
-    reply.header('Content-Type', mimeType);
-    reply.header('Content-Length', download.size);
-    reply.header(
-      'Content-Disposition',
-      this.buildInlineDisposition(download.filename),
-    );
     // Security: prevent MIME sniffing, XSS via SVG/HTML, token leakage via Referrer
     reply.header('X-Content-Type-Options', 'nosniff');
     reply.header('Referrer-Policy', 'no-referrer');
@@ -248,7 +252,14 @@ export class FilesController {
     );
     // no-store: URL may carry access_token query param (RFC 6750 §2.3 cache caveat)
     reply.header('Cache-Control', 'private, no-store');
-    return reply.send(download.stream);
+    return sendRangedStream(reply, {
+      filename: download.filename,
+      inline: true,
+      mimeType,
+      rangeHeader: singleHeaderValue(request.headers.range),
+      size: download.size,
+      openStream: (range) => fsSync.createReadStream(download.path, range),
+    });
   }
 
   @Get('download')
@@ -267,7 +278,7 @@ export class FilesController {
       'Content-Disposition',
       this.buildContentDisposition(download.filename),
     );
-    return reply.send(download.stream);
+    return reply.send(fsSync.createReadStream(download.path));
   }
 
   @Get('roots')
@@ -382,49 +393,4 @@ export class FilesController {
     const fallback = filename.replace(/[\r\n"\\]/g, '_');
     return `inline; filename="${fallback}"; filename*=UTF-8''${encodeURIComponent(filename)}`;
   }
-}
-
-/** Maps file extension to MIME type for inline serving. */
-function guessMimeType(filename: string): string {
-  const ext = filename.split('.').pop()?.toLowerCase() ?? '';
-  const MIME_MAP: Record<string, string> = {
-    // Images
-    png: 'image/png',
-    jpg: 'image/jpeg',
-    jpeg: 'image/jpeg',
-    gif: 'image/gif',
-    webp: 'image/webp',
-    svg: 'image/svg+xml',
-    ico: 'image/x-icon',
-    bmp: 'image/bmp',
-    avif: 'image/avif',
-    // Documents
-    pdf: 'application/pdf',
-    // Text / code
-    html: 'text/html',
-    css: 'text/css',
-    js: 'text/javascript',
-    mjs: 'text/javascript',
-    json: 'application/json',
-    xml: 'application/xml',
-    txt: 'text/plain',
-    md: 'text/markdown',
-    csv: 'text/csv',
-    // Media
-    mp4: 'video/mp4',
-    webm: 'video/webm',
-    mp3: 'audio/mpeg',
-    wav: 'audio/wav',
-    ogg: 'audio/ogg',
-    // Archives
-    zip: 'application/zip',
-    gz: 'application/gzip',
-    tar: 'application/x-tar',
-    // Fonts
-    woff: 'font/woff',
-    woff2: 'font/woff2',
-    ttf: 'font/ttf',
-    otf: 'font/otf',
-  };
-  return MIME_MAP[ext] ?? 'application/octet-stream';
 }

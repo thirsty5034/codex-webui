@@ -48,6 +48,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     file \
     openssh-client \
     procps \
+    p7zip-full \
     bubblewrap \
     build-essential \
     pkg-config \
@@ -65,6 +66,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     uuid-dev \
     xz-utils \
  && rm -rf /var/lib/apt/lists/*
+
+RUN command -v 7za >/dev/null
 
 # Install mise + runtimes
 RUN curl -fsSL https://mise.run | sh

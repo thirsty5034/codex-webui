@@ -58,6 +58,9 @@ export const SECURITY_SETTING_KEYS = {
 
 export const GENERAL_SETTING_KEYS = {
   maxIdleSubscriptions: 'general.maxIdleSubscriptions',
+  onlyofficeUrl: 'general.onlyofficeUrl',
+  onlyofficeJwtSecret: 'general.onlyofficeJwtSecret',
+  publicBaseUrl: 'general.publicBaseUrl',
 } as const;
 
 export const TERMINAL_SETTING_DEFAULTS = {
@@ -68,6 +71,9 @@ export const TERMINAL_SETTING_DEFAULTS = {
 
 export const GENERAL_SETTING_DEFAULTS = {
   maxIdleSubscriptions: 30,
+  onlyofficeUrl: '',
+  onlyofficeJwtSecret: '',
+  publicBaseUrl: '',
 } as const;
 
 const DEFAULT_UPLOAD_MAX_BYTES = 104_857_600; // 100 MB
@@ -92,6 +98,30 @@ export const SETTINGS_DEFINITIONS = [
       'Maximum idle thread socket subscriptions retained in the browser before cleanup.',
     defaultValue: GENERAL_SETTING_DEFAULTS.maxIdleSubscriptions,
     constraints: { min: 5, max: 200, integer: true },
+  },
+  {
+    key: GENERAL_SETTING_KEYS.onlyofficeUrl,
+    type: 'string',
+    category: 'general',
+    description:
+      'OnlyOffice Document Server base URL. Leave empty to use native viewers and disable PPTX preview.',
+    defaultValue: GENERAL_SETTING_DEFAULTS.onlyofficeUrl,
+  },
+  {
+    key: GENERAL_SETTING_KEYS.onlyofficeJwtSecret,
+    type: 'string',
+    category: 'general',
+    description:
+      'JWT secret for signing OnlyOffice editor config. Leave empty only when the Document Server has JWT disabled.',
+    defaultValue: GENERAL_SETTING_DEFAULTS.onlyofficeJwtSecret,
+  },
+  {
+    key: GENERAL_SETTING_KEYS.publicBaseUrl,
+    type: 'string',
+    category: 'general',
+    description:
+      'Public base URL of this WebUI instance (e.g. https://codex.example.com). Used to build document URLs reachable by OnlyOffice. Auto-detected from request headers when empty.',
+    defaultValue: GENERAL_SETTING_DEFAULTS.publicBaseUrl,
   },
   {
     key: TERMINAL_SETTING_KEYS.maxSessions,

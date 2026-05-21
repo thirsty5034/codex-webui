@@ -9,6 +9,7 @@ import { AppsModule } from './apps/apps.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ApiKeyGuard } from './auth/api-key.guard';
+import { ArchiveModule } from './archive/archive.module';
 import { AuthModule } from './auth/auth.module';
 import { ChatModule } from './chat/chat.module';
 import { CodexModule } from './codex/codex.module';
@@ -17,6 +18,7 @@ import { FilesModule } from './files/files.module';
 import { LogsModule } from './logs/logs.module';
 import { McpServersModule } from './mcp-servers/mcp-servers.module';
 import { ModelsModule } from './models/models.module';
+import { OnlyOfficeModule } from './onlyoffice/onlyoffice.module';
 import { PendingApprovalsModule } from './pending-approvals/pending-approvals.module';
 import { PluginsModule } from './plugins/plugins.module';
 import { SettingsModule } from './settings/settings.module';
@@ -107,6 +109,7 @@ const PINO_REDACT = {
       },
     }),
     AuthModule,
+    ArchiveModule,
     ChatModule,
     DatabaseModule,
     CodexModule,
@@ -120,6 +123,7 @@ const PINO_REDACT = {
     PendingApprovalsModule,
     TokenUsageModule,
     PluginsModule,
+    OnlyOfficeModule,
     TurnDiffModule,
     ModelsModule,
     LogsModule,

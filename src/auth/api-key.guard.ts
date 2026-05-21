@@ -89,11 +89,16 @@ export class ApiKeyGuard implements CanActivate {
       : null;
   }
 
-  /** Only allow access_token query param on the inline file serve endpoint. */
+  /** Only allow access_token query param on inline file preview endpoints. */
   private allowsQueryAccessToken(request: FastifyRequest): boolean {
     if (request.method !== 'GET') return false;
     const url = request.url;
-    return url.startsWith('/api/files/serve?') || url === '/api/files/serve';
+    return (
+      url.startsWith('/api/files/serve?') ||
+      url === '/api/files/serve' ||
+      url.startsWith('/api/files/archive/entry?') ||
+      url === '/api/files/archive/entry'
+    );
   }
 
   private getSocketToken(client: Socket): string | null {

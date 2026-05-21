@@ -15,6 +15,7 @@ import {
   pluginsUninstallPluginMutation,
 } from '@/generated/api/@tanstack/react-query.gen';
 import { appsListAppsQueryKey, mcpServersListServersQueryKey } from '@/generated/api/@tanstack/react-query.gen';
+import { pluginsListPlugins } from '@/generated/api/sdk.gen';
 import type { PluginSummaryDto, PluginMarketplaceEntryDto } from '@/generated/api/types.gen';
 import { showSnackbar } from '@/stores/snackbar-store';
 import { PluginCard } from './plugin-card';
@@ -101,7 +102,6 @@ export function PluginsTab() {
 
   const refreshMutation = useMutation({
     mutationFn: async () => {
-      const { pluginsListPlugins } = await import('@/generated/api/sdk.gen');
       const { data } = await pluginsListPlugins({
         query: { forceRemoteSync: true },
         throwOnError: true,
