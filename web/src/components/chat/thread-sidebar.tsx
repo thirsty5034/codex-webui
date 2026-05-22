@@ -22,7 +22,7 @@ import {
   threadsStartThreadMutation,
   threadsUnarchiveThreadMutation,
 } from '@/generated/api/@tanstack/react-query.gen';
-import { tokenUsageReadThreadTokenUsage, turnDiffReadThreadTurnDiffs } from '@/generated/api/sdk.gen';
+import { tokenUsageReadThreadTokenUsage, turnDiffReadThreadTurnDiffs, turnErrorsReadThreadTurnErrors } from '@/generated/api/sdk.gen';
 import type { ThreadDto } from '@/generated/api';
 import { useTimelineStore } from '@/stores/timeline-store';
 import { useLayoutStore } from '@/stores/layout-store';
@@ -64,6 +64,7 @@ export function ThreadSidebar() {
   const hydrateTimelineForThread = useTimelineStore((s) => s.hydrateTimelineForThread);
   const hydrateTokenUsageForThread = useTimelineStore((s) => s.hydrateTokenUsageForThread);
   const hydrateTurnDiffsForThread = useTimelineStore((s) => s.hydrateTurnDiffsForThread);
+  const hydrateTurnErrorsForThread = useTimelineStore((s) => s.hydrateTurnErrorsForThread);
   const setThreadTitleForThread = useTimelineStore((s) => s.setThreadTitleForThread);
   const setLoadingForThread = useTimelineStore((s) => s.setLoadingForThread);
   const setThreadStatusForThread = useTimelineStore((s) => s.setThreadStatusForThread);
@@ -134,6 +135,9 @@ export function ThreadSidebar() {
         .catch(() => undefined);
       void turnDiffReadThreadTurnDiffs({ path: { threadId: tid } })
         .then(({ data }) => data && hydrateTurnDiffsForThread(tid, data.turns))
+        .catch(() => undefined);
+      void turnErrorsReadThreadTurnErrors({ path: { threadId: tid } })
+        .then(({ data }) => data && hydrateTurnErrorsForThread(tid, data.errors))
         .catch(() => undefined);
     },
     onError: (_err, vars) => setLoadingForThread(vars.path.threadId, false),
@@ -208,6 +212,9 @@ export function ThreadSidebar() {
         .catch(() => undefined);
       void turnDiffReadThreadTurnDiffs({ path: { threadId: tid } })
         .then(({ data }) => data && hydrateTurnDiffsForThread(tid, data.turns))
+        .catch(() => undefined);
+      void turnErrorsReadThreadTurnErrors({ path: { threadId: tid } })
+        .then(({ data }) => data && hydrateTurnErrorsForThread(tid, data.errors))
         .catch(() => undefined);
       invalidateThreads();
       void navigate({ to: '/t/$threadId', params: { threadId: tid } });

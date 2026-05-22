@@ -477,6 +477,7 @@ interface TimelineState {
   hydrateTimelineForThread: (threadId: string, turns: TurnDto[], cwd?: string | null) => void;
   hydrateTokenUsageForThread: (threadId: string, turns: Array<{ turnId: string; usage: ThreadTokenUsage }>) => void;
   hydrateTurnDiffsForThread: (threadId: string, turns: Array<{ turnId: string; diff: string }>) => void;
+  hydrateTurnErrorsForThread: (threadId: string, errors: Array<{ turnId: string; message: string }>) => void;
   updateCurrentTurnForThread: (
     threadId: string,
     turnId: string,
@@ -503,7 +504,7 @@ interface TimelineState {
   setThreadStatusForThread: (threadId: string, status: ThreadStatusType | null) => void;
   setActiveTurnIdForThread: (threadId: string, turnId: string | null) => void;
   clearActiveTurnForThread: (threadId: string) => void;
-  addSystemMessageForThread: (threadId: string, message: string, severity?: 'info' | 'warning' | 'error') => void;
+  addSystemMessageForThread: (threadId: string, message: string, severity?: 'info' | 'warning' | 'error', turnId?: string) => void;
   addSystemErrorForThread: (threadId: string, message: string) => void;
   setThreadTitleForThread: (threadId: string, title: string | null) => void;
   resolveApprovalByRequestIdForThread: (threadId: string, requestId: string | number) => void;
@@ -846,6 +847,45 @@ export const useTimelineStore = create<TimelineState>((set, get) => {
       }));
     },
 
+    hydrateTurnErrorsForThread: (threadId, errors) => {
+      if (errors.length === 0) return;
+      applyThreadUpdate(threadId, (runtime) => {
+        // Build a map of turnId → error entry, deduplicating against existing timeline
+        // Dedup by turnId + content to avoid skipping same error message from different turns
+        const existingErrorKeys = new Set(
+          runtime.timeline
+            .filter((e): e is Extract<typeof e, { kind: 'system' }> => e.kind === 'system' && e.severity === 'error')
+            .map((e) => `${e.turnId ?? ''}:${e.content}`),
+        );
+        const pendingByTurn = new Map<string, { kind: 'system'; content: string; severity: 'error'; turnId: string }>();
+        for (const err of errors) {
+          const content = `Error: ${err.message}`;
+          if (!existingErrorKeys.has(`${err.turnId}:${content}`)) {
+            pendingByTurn.set(err.turnId, { kind: 'system', content, severity: 'error', turnId: err.turnId });
+          }
+        }
+        if (pendingByTurn.size === 0) return runtime;
+
+        // Insert each error entry right after its corresponding turn
+        const timeline = [];
+        for (const entry of runtime.timeline) {
+          timeline.push(entry);
+          if (entry.kind === 'turn') {
+            const errorEntry = pendingByTurn.get(entry.turnId);
+            if (errorEntry) {
+              timeline.push(errorEntry);
+              pendingByTurn.delete(entry.turnId);
+            }
+          }
+        }
+        // Append any remaining errors whose turn wasn't found in the timeline
+        for (const entry of pendingByTurn.values()) {
+          timeline.push(entry);
+        }
+        return { ...runtime, timeline };
+      });
+    },
+
     updateCurrentTurnForThread: (threadId, turnId, updater) => {
       applyThreadUpdate(threadId, (runtime) => updateRuntimeCurrentTurn(runtime, turnId, updater));
     },
@@ -982,12 +1022,12 @@ export const useTimelineStore = create<TimelineState>((set, get) => {
       applyThreadUpdate(threadId, (runtime) => ({ ...runtime, activeTurnId: null, loading: false }));
     },
 
-    addSystemMessageForThread: (threadId, message, severity = 'info') => {
+    addSystemMessageForThread: (threadId, message, severity = 'info', turnId?) => {
       applyThreadUpdate(threadId, (runtime) => ({
         ...runtime,
         timeline: [
           ...runtime.timeline,
-          { kind: 'system' as const, content: message, severity },
+          { kind: 'system' as const, content: message, severity, turnId },
         ],
       }));
     },

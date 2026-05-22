@@ -25,13 +25,15 @@ The backend (NestJS) talks to `codex app-server` over stdio JSON-RPC and pushes 
 - Security policy switching (sandbox levels)
 - Multi-device CAS conflict prevention
 
-**File Management**
+**File Management & Preview**
 
 ![File Management](./images/sidebar-file-en.png)
 
 - Tree browser with drag-and-drop (dnd-kit)
-- Monaco code viewer
-- Git diff split view (@git-diff-view)
+- Monaco code editor + Git diff split view
+- File preview: PDF, images, video, audio, fonts, binary (hex dump)
+- Archive browsing: ZIP / TAR(.gz/.bz2/.xz) / RAR / 7z — preview without extracting
+- Office editing: DOCX / XLSX / PPTX (via OnlyOffice Document Server, optional)
 - Upload / download / rename / copy / move / mkdir
 
 **Terminal**
@@ -177,6 +179,70 @@ pnpm db:migrate         # Run migrations
 cd web && pnpm dev      # Frontend dev server
 cd web && pnpm build    # Build frontend (outputs to public/)
 ```
+
+## HTTPS / Reverse Proxy
+
+Codex WebUI listens on plain HTTP (default `0.0.0.0:8172`). Use a reverse proxy to terminate HTTPS in production.
+
+> **Note**: `WEBUI_API_KEY` is transmitted in cleartext over HTTP. Always enable HTTPS for public-facing deployments.
+
+### Nginx
+
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name codex.example.com;
+
+    ssl_certificate     /etc/ssl/certs/codex.pem;
+    ssl_certificate_key /etc/ssl/private/codex.key;
+
+    client_max_body_size 200m;  # match file upload limit
+
+    location / {
+        proxy_pass http://127.0.0.1:8172;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host  $host;
+    }
+
+    # Socket.IO WebSocket upgrade
+    location /socket.io/ {
+        proxy_pass http://127.0.0.1:8172;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade    $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host              $host;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host  $host;
+        proxy_read_timeout 300s;
+    }
+}
+
+server {
+    listen 80;
+    server_name codex.example.com;
+    return 301 https://$host$request_uri;
+}
+```
+
+When using Docker Compose, change `proxy_pass` to `http://codex-webui:8172` and replace `ports` with `expose`.
+
+### Caddy
+
+Caddy auto-provisions Let's Encrypt certificates and handles WebSocket upgrades automatically:
+
+```caddyfile
+codex.example.com {
+    reverse_proxy 127.0.0.1:8172
+}
+```
+
+### OnlyOffice Note
+
+Behind a reverse proxy, OnlyOffice needs the public URL for save callbacks. Either ensure your proxy forwards `X-Forwarded-Proto` / `X-Forwarded-Host` correctly (auto-detected), or set `general.publicBaseUrl` explicitly in Settings → General.
 
 ## License
 

@@ -26,7 +26,7 @@ import {
   threadsResumeThreadMutation,
   threadsReadThreadOptions,
 } from '@/generated/api/@tanstack/react-query.gen';
-import { tokenUsageReadThreadTokenUsage, turnDiffReadThreadTurnDiffs } from '@/generated/api/sdk.gen';
+import { tokenUsageReadThreadTokenUsage, turnDiffReadThreadTurnDiffs, turnErrorsReadThreadTurnErrors } from '@/generated/api/sdk.gen';
 
 /** Extracts a display label from a thread DTO. */
 function threadLabel(thread: { name?: string | null; preview?: string | null }): string {
@@ -47,6 +47,7 @@ export function ThreadView() {
   const hydrateTimelineForThread = useTimelineStore((s) => s.hydrateTimelineForThread);
   const hydrateTokenUsageForThread = useTimelineStore((s) => s.hydrateTokenUsageForThread);
   const hydrateTurnDiffsForThread = useTimelineStore((s) => s.hydrateTurnDiffsForThread);
+  const hydrateTurnErrorsForThread = useTimelineStore((s) => s.hydrateTurnErrorsForThread);
   const setThreadTitleForThread = useTimelineStore((s) => s.setThreadTitleForThread);
   const setThreadStatusForThread = useTimelineStore((s) => s.setThreadStatusForThread);
   const setActiveTurnIdForThread = useTimelineStore((s) => s.setActiveTurnIdForThread);
@@ -95,6 +96,9 @@ export function ThreadView() {
       void turnDiffReadThreadTurnDiffs({ path: { threadId: tid } })
         .then(({ data }) => data && hydrateTurnDiffsForThread(tid, data.turns))
         .catch(() => undefined);
+      void turnErrorsReadThreadTurnErrors({ path: { threadId: tid } })
+        .then(({ data }) => data && hydrateTurnErrorsForThread(tid, data.errors))
+        .catch(() => undefined);
     },
     onError: (_err, vars) => {
       const failedId = vars.path.threadId;
@@ -123,6 +127,9 @@ export function ThreadView() {
         .catch(() => undefined);
       void turnDiffReadThreadTurnDiffs({ path: { threadId: targetId } })
         .then(({ data }) => data && hydrateTurnDiffsForThread(targetId, data.turns))
+        .catch(() => undefined);
+      void turnErrorsReadThreadTurnErrors({ path: { threadId: targetId } })
+        .then(({ data }) => data && hydrateTurnErrorsForThread(targetId, data.errors))
         .catch(() => undefined);
     } catch {
       if (useTimelineStore.getState().threadId !== targetId) return;

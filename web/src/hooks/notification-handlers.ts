@@ -52,7 +52,7 @@ export interface NotificationContext {
   expandReasoning: (itemId: string) => void;
   collapseReasoning: (itemId: string) => void;
   addApproval: (approval: ApprovalRequest) => void;
-  addSystemMessage: (message: string, severity?: 'info' | 'warning' | 'error') => void;
+  addSystemMessage: (message: string, severity?: 'info' | 'warning' | 'error', turnId?: string) => void;
   addSystemError: (message: string) => void;
   setTokenUsage: (turnId: string, usage: ThreadTokenUsage) => void;
   setThreadStatus: (status: ThreadStatusType | null) => void;
@@ -331,7 +331,7 @@ const handleTurnCompleted: Handler = (params, ctx) => {
     turn.error?.message &&
     shouldRecordFinalError(params.threadId as string | undefined, turnId, turn.error.message)
   ) {
-    ctx.addSystemMessage(`Error: ${turn.error.message}`, 'error');
+    ctx.addSystemMessage(`Error: ${turn.error.message}`, 'error', turnId);
   }
 
   void ctx.queryClient.invalidateQueries({ queryKey: threadsListThreadsQueryKey() });
@@ -357,7 +357,7 @@ const handleError: Handler = (params, ctx) => {
     if (ctx.threadId === threadId) {
       showSnackbar(message, 'error', 5000);
       if (shouldRecordFinalError(threadId, turnId, message)) {
-        ctx.addSystemMessage(`Error: ${message}`, 'error');
+        ctx.addSystemMessage(`Error: ${message}`, 'error', turnId);
       }
       if (turnId) {
         ctx.updateCurrentTurn(turnId, (items) => ({ items, completed: true }));

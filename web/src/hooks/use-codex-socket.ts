@@ -9,7 +9,7 @@ import { useConnectionStore } from '../stores/connection-store';
 import { useTimelineStore } from '../stores/timeline-store';
 import { showSnackbar } from '@/stores/snackbar-store';
 import { handleNotification, type NotificationContext } from './notification-handlers';
-import { tokenUsageReadThreadTokenUsage, turnDiffReadThreadTurnDiffs, threadsResumeThread } from '@/generated/api/sdk.gen';
+import { tokenUsageReadThreadTokenUsage, turnDiffReadThreadTurnDiffs, turnErrorsReadThreadTurnErrors, threadsResumeThread } from '@/generated/api/sdk.gen';
 import { parseAvailableDecisions, parseStringArray, parseNetworkAmendments } from '@/lib/approval-parsers';
 import { userInputFromSocket } from '@/lib/user-input-parsers';
 import i18n from '@/i18n';
@@ -82,9 +82,9 @@ export function useCodexSocket(enabled = true) {
         }
       },
       addApproval: (approval) => useTimelineStore.getState().addApprovalForThread(approval.threadId, approval),
-      addSystemMessage: (message, severity) => {
+      addSystemMessage: (message, severity, turnId) => {
         const threadId = ctx.threadId;
-        if (threadId) useTimelineStore.getState().addSystemMessageForThread(threadId, message, severity);
+        if (threadId) useTimelineStore.getState().addSystemMessageForThread(threadId, message, severity, turnId);
       },
       addSystemError: (message) => {
         const threadId = ctx.threadId;
@@ -178,15 +178,19 @@ export function useCodexSocket(enabled = true) {
             store.setActiveTurnIdForThread(threadId, activeTurn?.id ?? null);
             store.setLoadingForThread(threadId, Boolean(activeTurn));
             // Hydrate after timeline is in place to avoid race.
-            const [tokenRes, diffRes] = await Promise.allSettled([
+            const [tokenRes, diffRes, errorRes] = await Promise.allSettled([
               tokenUsageReadThreadTokenUsage({ path: { threadId } }),
               turnDiffReadThreadTurnDiffs({ path: { threadId } }),
+              turnErrorsReadThreadTurnErrors({ path: { threadId } }),
             ]);
             if (tokenRes.status === 'fulfilled' && tokenRes.value.data) {
               store.hydrateTokenUsageForThread(threadId, tokenRes.value.data.turns);
             }
             if (diffRes.status === 'fulfilled' && diffRes.value.data) {
               store.hydrateTurnDiffsForThread(threadId, diffRes.value.data.turns);
+            }
+            if (errorRes.status === 'fulfilled' && errorRes.value.data) {
+              store.hydrateTurnErrorsForThread(threadId, errorRes.value.data.errors);
             }
           })
           .catch(() =>

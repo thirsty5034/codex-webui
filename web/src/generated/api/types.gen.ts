@@ -1287,6 +1287,17 @@ export type ThreadTurnDiffsResponseDto = {
     turns: Array<TurnDiffEntryDto>;
 };
 
+export type PersistedTurnErrorDto = {
+    turnId: string;
+    message: string;
+    createdAt: number;
+};
+
+export type ThreadTurnErrorsResponseDto = {
+    threadId: string;
+    errors: Array<PersistedTurnErrorDto>;
+};
+
 export type LogEntryDto = {
     timestamp: string;
     level: 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal' | 'unknown';
@@ -2729,6 +2740,27 @@ export type TurnDiffReadThreadTurnDiffsResponses = {
 };
 
 export type TurnDiffReadThreadTurnDiffsResponse = TurnDiffReadThreadTurnDiffsResponses[keyof TurnDiffReadThreadTurnDiffsResponses];
+
+export type TurnErrorsReadThreadTurnErrorsData = {
+    body?: never;
+    path: {
+        threadId: string;
+    };
+    query?: never;
+    url: '/api/threads/{threadId}/turn-errors';
+};
+
+export type TurnErrorsReadThreadTurnErrorsErrors = {
+    401: ApiErrorResponseDto;
+};
+
+export type TurnErrorsReadThreadTurnErrorsError = TurnErrorsReadThreadTurnErrorsErrors[keyof TurnErrorsReadThreadTurnErrorsErrors];
+
+export type TurnErrorsReadThreadTurnErrorsResponses = {
+    200: ThreadTurnErrorsResponseDto;
+};
+
+export type TurnErrorsReadThreadTurnErrorsResponse = TurnErrorsReadThreadTurnErrorsResponses[keyof TurnErrorsReadThreadTurnErrorsResponses];
 
 export type ModelsListModelsData = {
     body?: never;

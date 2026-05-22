@@ -40,7 +40,7 @@ export interface TurnItem {
 /** A user message, system message, or a full AI turn. */
 export type TimelineEntry =
   | { kind: 'user'; content: string; images?: string[] }
-  | { kind: 'system'; content: string; severity?: 'info' | 'warning' | 'error' }
+  | { kind: 'system'; content: string; severity?: 'info' | 'warning' | 'error'; turnId?: string }
   | {
       kind: 'turn';
       turnId: string;

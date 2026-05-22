@@ -25,13 +25,15 @@
 - 支持安全策略切换（sandbox 级别）
 - 多设备同时在线时的 CAS 防冲突
 
-**文件管理**
+**文件管理与预览**
 
 ![文件管理](./images/sidebar-file.png)
 
 - 树形文件浏览器，支持拖拽移动
-- Monaco Editor 代码查看
-- Git diff 分栏对比（@git-diff-view）
+- Monaco Editor 代码编辑 + Git diff 分栏对比
+- 文件预览：PDF、图片、视频、音频、字体、二进制（hex dump）
+- 压缩包浏览：ZIP / TAR(.gz/.bz2/.xz) / RAR / 7z，无需解压即可预览内容
+- Office 文档编辑：DOCX / XLSX / PPTX（通过 OnlyOffice Document Server，可选集成）
 - 上传 / 下载 / 重命名 / 复制 / 移动 / 新建目录
 
 **终端**
@@ -177,6 +179,70 @@ pnpm db:migrate         # 执行迁移
 cd web && pnpm dev      # 前端开发模式
 cd web && pnpm build    # 前端构建（输出到 public/）
 ```
+
+## HTTPS / 反向代理
+
+Codex WebUI 自身只监听 HTTP（默认 `0.0.0.0:8172`），生产环境建议用反向代理终止 HTTPS。
+
+> **注意**：`WEBUI_API_KEY` 在纯 HTTP 下明文传输，公网部署务必启用 HTTPS。
+
+### Nginx
+
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name codex.example.com;
+
+    ssl_certificate     /etc/ssl/certs/codex.pem;
+    ssl_certificate_key /etc/ssl/private/codex.key;
+
+    client_max_body_size 200m;  # 匹配文件上传限制
+
+    location / {
+        proxy_pass http://127.0.0.1:8172;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host  $host;
+    }
+
+    # Socket.IO WebSocket 升级
+    location /socket.io/ {
+        proxy_pass http://127.0.0.1:8172;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade    $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host              $host;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host  $host;
+        proxy_read_timeout 300s;
+    }
+}
+
+server {
+    listen 80;
+    server_name codex.example.com;
+    return 301 https://$host$request_uri;
+}
+```
+
+Docker Compose 中使用时，`proxy_pass` 改为 `http://codex-webui:8172`，并将 `ports` 改为 `expose`。
+
+### Caddy
+
+Caddy 自动签发 Let's Encrypt 证书，自动处理 WebSocket 升级：
+
+```caddyfile
+codex.example.com {
+    reverse_proxy 127.0.0.1:8172
+}
+```
+
+### OnlyOffice 注意事项
+
+反向代理下 OnlyOffice 需要知道公开 URL 才能回调保存。代理正确传递 `X-Forwarded-Proto` / `X-Forwarded-Host` 即可自动检测；也可在 Settings → General 显式设置 `general.publicBaseUrl`。
 
 ## License
 

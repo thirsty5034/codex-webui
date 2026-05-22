@@ -107,3 +107,21 @@ export const pendingServerRequests = sqliteTable(
 export type PendingServerRequestRow = typeof pendingServerRequests.$inferSelect;
 export type InsertPendingServerRequestRow =
   typeof pendingServerRequests.$inferInsert;
+
+/** Persists final turn errors for hydration after page refresh. */
+export const turnErrors = sqliteTable(
+  'turn_errors',
+  {
+    threadId: text('thread_id').notNull(),
+    turnId: text('turn_id').notNull(),
+    message: text('message').notNull(),
+    createdAt: integer('created_at').notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.threadId, table.turnId] }),
+    index('idx_turn_errors_thread').on(table.threadId),
+  ],
+);
+
+export type TurnErrorRow = typeof turnErrors.$inferSelect;
+export type InsertTurnErrorRow = typeof turnErrors.$inferInsert;

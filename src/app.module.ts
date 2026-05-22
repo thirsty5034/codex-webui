@@ -27,6 +27,7 @@ import { TerminalModule } from './terminal/terminal.module';
 import { ThreadsModule } from './threads/threads.module';
 import { TokenUsageModule } from './token-usage/token-usage.module';
 import { TurnDiffModule } from './turn-diff/turn-diff.module';
+import { TurnErrorsModule } from './turn-errors/turn-errors.module';
 
 const isDev = process.env.NODE_ENV !== 'production';
 
@@ -125,6 +126,7 @@ const PINO_REDACT = {
     PluginsModule,
     OnlyOfficeModule,
     TurnDiffModule,
+    TurnErrorsModule,
     ModelsModule,
     LogsModule,
     McpServersModule,

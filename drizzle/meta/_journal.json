@@ -36,6 +36,13 @@
       "when": 1778862327044,
       "tag": "0004_lethal_rhodey",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1779416398517,
+      "tag": "0005_melted_mister_sinister",
+      "breakpoints": true
     }
   ]
 }
