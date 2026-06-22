@@ -87,6 +87,8 @@ export class ThreadsController {
       cwd: body.cwd,
       approvalPolicy:
         body.approvalPolicy as v2.ThreadStartParams['approvalPolicy'],
+      experimentalRawEvents: false,
+      persistExtendedHistory: true,
     });
   }
 

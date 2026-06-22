@@ -163,7 +163,7 @@ export class CodexProcessManager implements OnModuleInit, OnModuleDestroy {
           title: 'Codex WebUI',
           version: '0.1.0',
         },
-        capabilities: { experimentalApi: true, requestAttestation: false },
+        capabilities: { experimentalApi: true },
       });
       this.generation += 1;
       this.logger.log(
