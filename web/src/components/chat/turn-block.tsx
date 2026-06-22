@@ -56,6 +56,7 @@ function groupConsecutiveToolCalls(items: TurnItem[]): GroupedEntry[] {
 interface Props {
   entry: Extract<TimelineEntry, { kind: 'turn' }>;
   onShare?: () => void;
+  selectMode?: boolean;
 }
 
 /** Renders a single turn item with its blocking request cards (approval / user input). */
@@ -113,7 +114,7 @@ function ItemWithRequests({ item }: { item: TurnItem }) {
   }
 }
 
-export function TurnBlock({ entry, onShare }: Props) {
+export function TurnBlock({ entry, onShare, selectMode }: Props) {
   const { t } = useTranslation();
   const userInputRequests = useTimelineStore((s) => s.userInputRequests);
   // Render user-input requests whose itemId doesn't match any existing turn item.
@@ -134,6 +135,11 @@ export function TurnBlock({ entry, onShare }: Props) {
       .map((i) => i.content)
       .join('\n\n');
 
+  // In select mode, only show agentMessage items (hide terminal/tool calls/reasoning)
+  const displayItems = selectMode
+    ? entry.items.filter((i) => i.type === 'agentMessage' && i.content)
+    : entry.items;
+
   return (
     <div className="group/turn mb-6 flex gap-3">
       <Avatar className="mt-1 h-8 w-8 shrink-0">
@@ -143,9 +149,9 @@ export function TurnBlock({ entry, onShare }: Props) {
       </Avatar>
 
       <div className="glass-1 relative min-w-0 flex-1 space-y-2 rounded-2xl px-4 py-3">
-        {entry.plan && <PlanPanel plan={entry.plan} completed={entry.completed} />}
+        {!selectMode && entry.plan && <PlanPanel plan={entry.plan} completed={entry.completed} />}
 
-        {groupConsecutiveToolCalls(entry.items).map((group) => {
+        {groupConsecutiveToolCalls(displayItems).map((group) => {
           if (group.kind === 'single') {
             return <ItemWithRequests key={group.item.itemId} item={group.item} />;
           }
@@ -158,17 +164,17 @@ export function TurnBlock({ entry, onShare }: Props) {
           );
         })}
 
-        {unattachedApprovals.map((a) => (
+        {!selectMode && unattachedApprovals.map((a) => (
           <ApprovalItem key={String(a.requestId)} approval={a} />
         ))}
 
-        {unattachedInputs.map((req) => (
+        {!selectMode && unattachedInputs.map((req) => (
           <UserInputCard key={String(req.requestId)} request={req} />
         ))}
 
-        {entry.diff && <DiffViewer diff={entry.diff} />}
+        {!selectMode && entry.diff && <DiffViewer diff={entry.diff} />}
 
-        {entry.completed && <TurnTokenFooter turnId={entry.turnId} getCopyText={getAiMessageText} onShare={onShare} />}
+        {!selectMode && entry.completed && <TurnTokenFooter turnId={entry.turnId} getCopyText={getAiMessageText} onShare={onShare} />}
 
         {!entry.completed && entry.items.length === 0 && !entry.plan && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">

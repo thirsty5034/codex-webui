@@ -100,9 +100,13 @@ export function ChatTimeline({ onEditMessage }: Props) {
     });
   }, []);
 
-  const enterSelectMode = useCallback(() => {
+  const enterSelectMode = useCallback((preselectIndex?: number) => {
     setSelectMode(true);
-    setSelectedIndices(new Set());
+    if (preselectIndex !== undefined) {
+      setSelectedIndices(new Set([preselectIndex]));
+    } else {
+      setSelectedIndices(new Set());
+    }
   }, []);
 
   const exitSelectMode = useCallback(() => {
@@ -335,8 +339,7 @@ export function ChatTimeline({ onEditMessage }: Props) {
                     selectMode={selectMode}
                     selected={selectedIndices.has(virtualItem.index)}
                     onToggleSelect={toggleSelectIndex}
-                    onEnterSelectMode={enterSelectMode}
-                    onShare={enterSelectMode}
+                    onShare={() => enterSelectMode(virtualItem.index)}
                     t={t}
                   />
                 </div>
@@ -449,7 +452,6 @@ function TimelineEntryRow({
   selectMode,
   selected,
   onToggleSelect,
-  onEnterSelectMode,
   onShare,
   t,
 }: {
@@ -462,7 +464,6 @@ function TimelineEntryRow({
   selectMode: boolean;
   selected: boolean;
   onToggleSelect: (idx: number) => void;
-  onEnterSelectMode: () => void;
   onShare?: () => void;
   t: (key: string) => string;
 }) {
@@ -471,7 +472,7 @@ function TimelineEntryRow({
     <button
       type="button"
       className="mr-2 mt-1 shrink-0 cursor-pointer text-muted-foreground hover:text-foreground"
-      onClick={() => onToggleSelect(index)}
+      onClick={(e) => { e.stopPropagation(); onToggleSelect(index); }}
       aria-label={selected ? t('Deselect') : t('Select')}
     >
       {selected ? (
@@ -485,7 +486,7 @@ function TimelineEntryRow({
   if (entry.kind === 'user') {
     const numTurns = computeRollbackTurns(timeline, index);
     return (
-      <div className="group/user flex items-start" onDoubleClick={onEnterSelectMode}>
+      <div className="group/user flex items-start" onClick={selectMode ? () => onToggleSelect(index) : undefined} style={selectMode ? { cursor: 'pointer' } : undefined}>
         {selectCheckbox}
         <div className="flex flex-1 flex-col items-end">
         <div
@@ -539,10 +540,10 @@ function TimelineEntryRow({
   }
 
   return (
-    <div className="flex items-start" onDoubleClick={onEnterSelectMode}>
+    <div className="flex items-start" onClick={selectMode ? () => onToggleSelect(index) : undefined} style={selectMode ? { cursor: 'pointer' } : undefined}>
       {selectCheckbox}
       <div className="min-w-0 flex-1">
-        <TurnBlock entry={entry} onShare={onShare} />
+        <TurnBlock entry={entry} onShare={onShare} selectMode={selectMode} />
       </div>
     </div>
   );
