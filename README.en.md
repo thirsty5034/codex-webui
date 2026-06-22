@@ -1,6 +1,6 @@
 # Codex WebUI
 
-[![GHCR](https://img.shields.io/badge/GHCR-codex--webui-blue?logo=github)](https://github.com/LimLLL/codex-webui/pkgs/container/codex-webui)
+[![GHCR](https://img.shields.io/badge/GHCR-codex--webui-blue?logo=github)](https://github.com/thirsty5034/codex-webui/pkgs/container/codex-webui)
 [![Docker](https://img.shields.io/badge/docker-multi--arch-brightgreen?logo=docker)](./Dockerfile)
 
 A web frontend for [OpenAI Codex CLI](https://github.com/openai/codex). It brings the CLI experience into the browser with multi-thread concurrency, a file manager, a shared terminal, and plugin management.
@@ -102,7 +102,7 @@ docker run -d --name codex-webui \
   -e OPENAI_API_KEY=sk-xxx \
   -v codex_root:/root \
   -v codex_workspaces:/workspaces \
-  ghcr.io/limlll/codex-webui:latest
+  ghcr.io/thirsty5034/codex-webui:latest
 ```
 
 The app runs at `http://localhost:8172`.
@@ -112,7 +112,7 @@ The app runs at `http://localhost:8172`.
 ### Local Development
 
 ```bash
-git clone https://github.com/LimLLL/codex-webui.git
+git clone https://github.com/thirsty5034/codex-webui.git
 cd codex-webui
 pnpm install
 

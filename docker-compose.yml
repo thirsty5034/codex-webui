@@ -1,6 +1,6 @@
 services:
   codex-webui:
-    image: ghcr.io/limlll/codex-webui:latest
+    image: ghcr.io/thirsty5034/codex-webui:latest
     # To build locally instead of pulling from GHCR:
     # build:
     #   context: .

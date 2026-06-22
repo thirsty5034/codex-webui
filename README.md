@@ -1,6 +1,6 @@
 # Codex WebUI
 
-[![GHCR](https://img.shields.io/badge/GHCR-codex--webui-blue?logo=github)](https://github.com/LimLLL/codex-webui/pkgs/container/codex-webui)
+[![GHCR](https://img.shields.io/badge/GHCR-codex--webui-blue?logo=github)](https://github.com/thirsty5034/codex-webui/pkgs/container/codex-webui)
 [![Docker](https://img.shields.io/badge/docker-multi--arch-brightgreen?logo=docker)](./Dockerfile)
 
 给 [OpenAI Codex CLI](https://github.com/openai/codex) 做的 Web 前端。把命令行交互搬到浏览器里，支持多线程并发、文件管理、终端、插件市场等。
@@ -94,7 +94,7 @@ EOF
 ```yaml
 services:
   codex-webui:
-    image: ghcr.io/limlll/codex-webui:latest
+    image: ghcr.io/thirsty5034/codex-webui:latest
     # 本地构建时注释上方 image，取消注释下方 build：
     # build:
     #   context: .
@@ -149,13 +149,13 @@ docker run -d --name codex-webui \
   --cap-add SYS_ADMIN \
   --security-opt apparmor=unconfined \
   --security-opt seccomp=unconfined \
-  ghcr.io/limlll/codex-webui:latest
+  ghcr.io/thirsty5034/codex-webui:latest
 ```
 
 ### 本地开发
 
 ```bash
-git clone https://github.com/LimLLL/codex-webui.git
+git clone https://github.com/thirsty5034/codex-webui.git
 cd codex-webui
 pnpm install
 
