@@ -14,7 +14,7 @@ import {
   codexStatusUpdateApprovalPolicyMutation,
   codexStatusUpdateSandboxModeMutation,
 } from '@/generated/api/@tanstack/react-query.gen';
-import { pendingApprovalsRespond } from '@/generated/api/sdk.gen';
+import { pendingApprovalsRespond, pendingApprovalsListPending } from '@/generated/api/sdk.gen';
 import { cn } from '@/lib/utils';
 import { useTimelineStore } from '@/stores/timeline-store';
 
@@ -125,17 +125,37 @@ export function SecurityPolicyBadge() {
             onClick={() => {
               setAutoApprove(true);
               updateApproval.mutate({ body: { approvalPolicy: 'on-request' } });
+              // Resolve pending approvals already in the local store (all threads).
               const state = useTimelineStore.getState();
-              for (const a of Object.values(state.approvals)) {
-                if (a.status === 'pending') {
-                  void pendingApprovalsRespond({
-                    path: { requestId: String(a.requestId) },
-                    body: { result: { decision: 'accept' } },
-                  })
-                    .then(() => state.resolveApproval(a.itemId, 'accepted'))
-                    .catch(() => undefined);
+              const resolveLocal = (approvals: Record<string, { status: string; requestId: string | number; itemId: string }>, threadId: string) => {
+                for (const a of Object.values(approvals)) {
+                  if (a.status === 'pending') {
+                    void pendingApprovalsRespond({
+                      path: { requestId: String(a.requestId) },
+                      body: { result: { decision: 'accept' } },
+                    })
+                      .then(() => state.resolveApprovalForThread(threadId, a.itemId, 'accepted'))
+                      .catch(() => undefined);
+                  }
                 }
+              };
+              resolveLocal(state.approvals, state.threadId ?? '');
+              for (const [tid, runtime] of Object.entries(state.threadsById)) {
+                resolveLocal(runtime.approvals, tid);
               }
+              // Also fetch all server-side pending approvals and respond.
+              void pendingApprovalsListPending()
+                .then(({ data }) => {
+                  if (!data?.requests?.length) return;
+                  for (const req of data.requests) {
+                    if (req.status !== 'pending') continue;
+                    void pendingApprovalsRespond({
+                      path: { requestId: String(req.requestId) },
+                      body: { result: { decision: 'accept' } },
+                    }).catch(() => undefined);
+                  }
+                })
+                .catch(() => undefined);
             }}
           />
         </div>

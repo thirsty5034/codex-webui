@@ -66,18 +66,18 @@ export function FilesPanel() {
 
   if (isDesktop) {
     return (
-      <div className="flex min-h-0 flex-1">
-        <div className="flex w-56 shrink-0 flex-col border-r border-border bg-muted/20">
+      <div className="flex h-full min-h-0 flex-1 overflow-hidden">
+        <div className="flex w-56 shrink-0 flex-col overflow-hidden border-r border-border bg-muted/20">
           <FileTreeSidebar rootDir={rootDir} />
         </div>
-        <div className="flex min-w-0 flex-1 flex-col">{viewerContent}</div>
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">{viewerContent}</div>
       </div>
     );
   }
 
   // Mobile/Tablet: file tree in Sheet, viewer full-width
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
       <div className="flex shrink-0 items-center gap-2 border-b border-border px-3 py-2">
         <Button
           size="sm"

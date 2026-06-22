@@ -121,6 +121,11 @@ export function TurnBlock({ entry, onShare }: Props) {
   const unattachedInputs = Object.values(userInputRequests).filter(
     (req) => req.turnId === entry.turnId && !itemIds.has(req.itemId),
   );
+  const approvals = useTimelineStore((s) => s.approvals);
+  // Render approval requests whose itemId doesn't match any turn item (e.g. MCP elicitation).
+  const unattachedApprovals = Object.values(approvals).filter(
+    (a) => a.turnId === entry.turnId && a.status === 'pending' && !itemIds.has(a.itemId),
+  );
 
   // Collect agentMessage text for copy (excludes reasoning/tool calls)
   const getAiMessageText = () =>
@@ -152,6 +157,10 @@ export function TurnBlock({ entry, onShare }: Props) {
             </ToolCallGroup>
           );
         })}
+
+        {unattachedApprovals.map((a) => (
+          <ApprovalItem key={String(a.requestId)} approval={a} />
+        ))}
 
         {unattachedInputs.map((req) => (
           <UserInputCard key={String(req.requestId)} request={req} />
