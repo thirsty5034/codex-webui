@@ -75,29 +75,6 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push Docker image
-        id: buildx1
-        continue-on-error: true
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile
-          platforms: linux/${{ matrix.arch }}
-          build-args: |
-            CODEX_CLI_VERSION=${{ steps.meta.outputs.codex_version || '0.123.0' }}
-          tags: |
-            ${{ env.REGISTRY }}/${{ steps.meta.outputs.image_name }}:${{ matrix.arch }}-${{ steps.meta.outputs.version_tag }}
-          push: true
-          provenance: false
-          sbom: false
-          cache-from: type=gha,scope=${{ matrix.arch }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
-
-      - name: Retry build on failure
-        if: steps.buildx1.outcome != 'success'
-        run: sleep 10
-
-      - name: Build and push Docker image (retry)
-        if: steps.buildx1.outcome != 'success'
         uses: docker/build-push-action@v5
         with:
           context: .
