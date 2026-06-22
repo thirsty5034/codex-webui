@@ -2,10 +2,11 @@
  * Virtualized scrollable message timeline.
  * Uses TanStack Virtual for efficient rendering of long conversations.
  */
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
+import { useLayoutStore } from '@/stores/layout-store';
 import { useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { Bot, Loader2, Pencil } from 'lucide-react';
+import { ArrowDown, Bot, CheckSquare, Copy, Loader2, Pencil, Square, X } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import {
@@ -29,9 +30,23 @@ import {
 } from '@/generated/api/@tanstack/react-query.gen';
 import { tokenUsageReadThreadTokenUsage, turnDiffReadThreadTurnDiffs } from '@/generated/api/sdk.gen';
 import { useTimelineStore } from '@/stores/timeline-store';
+import { showSnackbar } from '@/stores/snackbar-store';
 import type { TimelineEntry } from '@/types/timeline';
 import { TurnBlock } from './turn-block';
+import { Button } from '@/components/ui/button';
+import { CopyButton } from './copy-button';
 import { UserMessageBubble } from './user-message-bubble';
+
+/** Extracts plain text from a timeline entry for copy/export. */
+function extractEntryText(entry: TimelineEntry): string {
+  if (entry.kind === 'user') return entry.content;
+  if (entry.kind === 'system') return entry.content;
+  // Turn: collect agentMessage content only (skip reasoning / tool calls)
+  return entry.items
+    .filter((i) => i.type === 'agentMessage' && i.content)
+    .map((i) => i.content)
+    .join('\n\n');
+}
 
 /** Counts how many turns need to be rolled back when editing this user message. */
 function computeRollbackTurns(timeline: TimelineEntry[], userIndex: number): number {
@@ -65,6 +80,9 @@ export function ChatTimeline({ onEditMessage }: Props) {
     numTurns: number;
     content: string;
   } | null>(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(() => new Set());
+  const [showScrollBottom, setShowScrollBottom] = useState(false);
   const queryClient = useQueryClient();
 
   const rollbackThread = useMutation({
@@ -73,11 +91,84 @@ export function ChatTimeline({ onEditMessage }: Props) {
 
   const canRollback = threadMode === 'live' && !loading && !rollbackThread.isPending;
 
+  // ── Multi-select helpers ─────────────────────────────────────────────
+  const toggleSelectIndex = useCallback((idx: number) => {
+    setSelectedIndices((prev) => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx); else next.add(idx);
+      return next;
+    });
+  }, []);
+
+  const enterSelectMode = useCallback(() => {
+    setSelectMode(true);
+    setSelectedIndices(new Set());
+  }, []);
+
+  const exitSelectMode = useCallback(() => {
+    setSelectMode(false);
+    setSelectedIndices(new Set());
+  }, []);
+
+  const selectAll = useCallback(() => {
+    setSelectedIndices(new Set(timeline.map((_, i) => i)));
+  }, [timeline]);
+
+  const copySelectedEntries = useCallback(async () => {
+    const parts: string[] = [];
+    for (const idx of selectedIndices) {
+      const entry = timeline[idx];
+      if (!entry) continue;
+      const text = extractEntryText(entry);
+      if (!text) continue;
+      const label = entry.kind === 'user' ? 'User' : 'Assistant';
+      parts.push(`${label}: ${text}`);
+    }
+    if (parts.length === 0) return;
+    try {
+      await navigator.clipboard.writeText(parts.join('\n\n'));
+      showSnackbar(t('{{count}} messages copied', { count: parts.length }), 'success');
+    } catch { /* ignore */ }
+    exitSelectMode();
+  }, [selectedIndices, timeline, exitSelectMode]);
+
   // ── Virtualizer ─────────────────────────────────────────────────────
   const scrollRef = useRef<HTMLDivElement>(null);
   const prevCountRef = useRef(timeline.length);
   const shouldAutoScroll = useRef(true);
   const scrollFrameRef = useRef<number | null>(null);
+
+  // Panel transition state
+  const sidePanel = useLayoutStore((s) => s.sidePanel);
+  const panelTransitionRef = useRef(false);
+
+  // Mark transition start when sidePanel changes
+  useLayoutEffect(() => {
+    panelTransitionRef.current = true;
+    shouldAutoScroll.current = false;
+  }, [sidePanel]);
+
+  // Set up transition finalization
+  useEffect(() => {
+    const el = scrollRef.current;
+
+    const onUser = () => {
+      panelTransitionRef.current = false;
+      // Let the next natural scroll event update shouldAutoScroll
+    };
+    el?.addEventListener('wheel', onUser, { once: true, passive: true });
+    el?.addEventListener('touchstart', onUser, { once: true, passive: true });
+
+    const finalTimer = setTimeout(() => {
+      panelTransitionRef.current = false;
+      // Don't re-enable shouldAutoScroll here — let user scroll do it
+    }, 500);
+
+    return () => {
+      clearTimeout(finalTimer);
+      el?.removeEventListener('wheel', onUser);
+    };
+  }, [sidePanel]);
 
   // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Virtual known limitation
   const virtualizer = useVirtualizer({
@@ -85,13 +176,62 @@ export function ChatTimeline({ onEditMessage }: Props) {
     getScrollElement: () => scrollRef.current,
     estimateSize: () => 80,
     overscan: 5,
+    observeElementRect: (_instance, cb) => {
+      const el = scrollRef.current;
+      if (!el) return () => {};
+      const ro = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          // Always forward size to virtualizer so it can render items
+          cb(entry.contentRect);
+          // Restore scroll position during panel transitions to prevent jumps
+          if (panelTransitionRef.current) {
+            const saved = lastScrollTopRef.current;
+            if (saved !== null) {
+              el.scrollTop = saved;
+              requestAnimationFrame(() => {
+                if (panelTransitionRef.current && saved !== null) {
+                  el.scrollTop = saved;
+                }
+              });
+            }
+          }
+        }
+      });
+      ro.observe(el);
+      return () => { ro.disconnect(); };
+    },
   });
+  // Track scrollTop via property setter override (captures ALL changes)
+  const lastScrollTopRef = useRef<number | null>(null);
+  const applyScrollTopSetter = (el: HTMLElement | null) => {
+    if (!el) return;
+    // Skip if already has own descriptor (already overridden)
+    if (Object.getOwnPropertyDescriptor(el, 'scrollTop')) return;
+    // Find scrollTop descriptor on prototype chain
+    const descriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'scrollTop')
+      ?? Object.getOwnPropertyDescriptor(Element.prototype, 'scrollTop');
+    if (!descriptor?.set) return;
+    Object.defineProperty(el, 'scrollTop', {
+      get() { return descriptor.get!.call(this); },
+      set(v: number) {
+        descriptor.set!.call(this, v);
+        if (!panelTransitionRef.current) {
+          lastScrollTopRef.current = v;
+        }
+      },
+      configurable: true,
+    });
+  };
 
-  // Track whether user is near bottom for auto-scroll decisions
   const handleScroll = useCallback(() => {
     const el = scrollRef.current;
-    if (el) {
-      shouldAutoScroll.current = isNearBottom(el);
+    if (el && !panelTransitionRef.current) {
+      const nearBottom = isNearBottom(el);
+      shouldAutoScroll.current = nearBottom;
+      setShowScrollBottom(prev => {
+        const show = !nearBottom;
+        return prev === show ? prev : show;
+      });
     }
   }, []);
 
@@ -110,11 +250,14 @@ export function ChatTimeline({ onEditMessage }: Props) {
     prevCountRef.current = timeline.length;
 
     if (timeline.length === 0 || !shouldAutoScroll.current) return;
+    // Skip auto-scroll entirely during panel transitions
+    if (panelTransitionRef.current) return;
 
     if (scrollFrameRef.current !== null) cancelAnimationFrame(scrollFrameRef.current);
 
     scrollFrameRef.current = requestAnimationFrame(() => {
       scrollFrameRef.current = null;
+      if (panelTransitionRef.current) return;
       virtualizer.scrollToIndex(timeline.length - 1, {
         align: 'end',
         behavior: previousCount > 0 && appended ? 'smooth' : 'auto',
@@ -161,9 +304,9 @@ export function ChatTimeline({ onEditMessage }: Props) {
   return (
     <>
       <div
-        ref={scrollRef}
+        ref={(el) => { if (el) { (scrollRef as React.MutableRefObject<HTMLElement | null>).current = el; applyScrollTopSetter(el); } }}
         onScroll={handleScroll}
-        className="min-h-0 flex-1 overflow-y-auto"
+        className="relative min-h-0 flex-1 overflow-y-auto"
       >
         <div
           className="relative px-3 sm:px-4 lg:px-6"
@@ -189,6 +332,11 @@ export function ChatTimeline({ onEditMessage }: Props) {
                     threadCwd={threadCwd}
                     canRollback={canRollback}
                     onRollback={setRollbackTarget}
+                    selectMode={selectMode}
+                    selected={selectedIndices.has(virtualItem.index)}
+                    onToggleSelect={toggleSelectIndex}
+                    onEnterSelectMode={enterSelectMode}
+                    onShare={enterSelectMode}
                     t={t}
                   />
                 </div>
@@ -196,7 +344,52 @@ export function ChatTimeline({ onEditMessage }: Props) {
             })}
           </div>
         </div>
+        {showScrollBottom && timeline.length > 0 && (
+          <div className="sticky bottom-4 z-10 flex justify-end pointer-events-none">
+            <Button
+              size="icon"
+              variant="secondary"
+              className="h-9 w-9 rounded-full shadow-md pointer-events-auto"
+              aria-label={t('Scroll to bottom')}
+              onClick={() => {
+                virtualizer.scrollToIndex(timeline.length - 1, {
+                  align: 'end',
+                  behavior: 'smooth',
+                });
+                shouldAutoScroll.current = true;
+                setShowScrollBottom(false);
+              }}
+            >
+              <ArrowDown className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
       </div>
+
+      {/* Share mode bottom toolbar */}
+      {selectMode && (
+        <div className="sticky bottom-0 z-20 flex items-center gap-2 border-t border-border bg-card/95 px-4 py-2 backdrop-blur">
+          <Button size="sm" variant="ghost" onClick={exitSelectMode}>
+            <X className="h-4 w-4" />
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            {t('{{count}} selected', { count: selectedIndices.size })}
+          </span>
+          <Button size="sm" variant="ghost" onClick={selectAll}>
+            {t('Select all')}
+          </Button>
+          <div className="flex-1" />
+          <Button
+            size="sm"
+            variant="default"
+            disabled={selectedIndices.size === 0}
+            onClick={() => void copySelectedEntries()}
+          >
+            <Copy className="mr-1 h-4 w-4" />
+            {t('Copy')}
+          </Button>
+        </div>
+      )}
 
       <AlertDialog open={rollbackTarget !== null} onOpenChange={(open) => !open && setRollbackTarget(null)}>
         <AlertDialogContent>
@@ -253,6 +446,11 @@ function TimelineEntryRow({
   threadCwd,
   canRollback,
   onRollback,
+  selectMode,
+  selected,
+  onToggleSelect,
+  onEnterSelectMode,
+  onShare,
   t,
 }: {
   entry: TimelineEntry;
@@ -261,12 +459,35 @@ function TimelineEntryRow({
   threadCwd: string | null;
   canRollback: boolean;
   onRollback: (target: { numTurns: number; content: string }) => void;
+  selectMode: boolean;
+  selected: boolean;
+  onToggleSelect: (idx: number) => void;
+  onEnterSelectMode: () => void;
+  onShare?: () => void;
   t: (key: string) => string;
 }) {
+  // ── Checkbox for multi-select mode ──────────────────────────────
+  const selectCheckbox = selectMode ? (
+    <button
+      type="button"
+      className="mr-2 mt-1 shrink-0 cursor-pointer text-muted-foreground hover:text-foreground"
+      onClick={() => onToggleSelect(index)}
+      aria-label={selected ? t('Deselect') : t('Select')}
+    >
+      {selected ? (
+        <CheckSquare className="h-5 w-5 text-primary" />
+      ) : (
+        <Square className="h-5 w-5" />
+      )}
+    </button>
+  ) : null;
+
   if (entry.kind === 'user') {
     const numTurns = computeRollbackTurns(timeline, index);
     return (
-      <div className="group/user flex flex-col items-end">
+      <div className="group/user flex items-start" onDoubleClick={onEnterSelectMode}>
+        {selectCheckbox}
+        <div className="flex flex-1 flex-col items-end">
         <div
           className="max-w-2xl overflow-hidden rounded-2xl bg-blue-600 px-4 py-3 text-white [&_a]:text-blue-200 [&_a]:underline [&_blockquote]:text-white/70 [&_code]:bg-white/15 [&_del]:text-white/70"
           style={{
@@ -276,23 +497,27 @@ function TimelineEntryRow({
         >
           <UserMessageBubble content={entry.content} threadCwd={threadCwd} images={entry.images} />
         </div>
-        {canRollback && numTurns > 0 && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                aria-label={t('Edit this message')}
-                className="mt-1 flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground focus:opacity-100 group-hover/user:opacity-100"
-                onClick={() => onRollback({ numTurns, content: entry.content })}
-              >
-                <Pencil className="h-3 w-3" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">
-              {t('Edit this message')}
-            </TooltipContent>
-          </Tooltip>
-        )}
+        <div className="mt-1 flex items-center gap-1 opacity-0 transition-opacity group-hover/user:opacity-100">
+          <CopyButton getText={() => entry.content} className="h-6 w-6" />
+          {canRollback && numTurns > 0 && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  aria-label={t('Edit this message')}
+                  className="flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+                  onClick={() => onRollback({ numTurns, content: entry.content })}
+                >
+                  <Pencil className="h-3 w-3" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                {t('Edit this message')}
+              </TooltipContent>
+            </Tooltip>
+          )}
+        </div>
+      </div>
       </div>
     );
   }
@@ -313,5 +538,12 @@ function TimelineEntryRow({
     );
   }
 
-  return <TurnBlock entry={entry} />;
+  return (
+    <div className="flex items-start" onDoubleClick={onEnterSelectMode}>
+      {selectCheckbox}
+      <div className="min-w-0 flex-1">
+        <TurnBlock entry={entry} onShare={onShare} />
+      </div>
+    </div>
+  );
 }

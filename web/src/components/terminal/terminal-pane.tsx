@@ -127,13 +127,13 @@ export function TerminalPane({ contextKey, terminalId, active, className }: Prop
     const element = containerRef.current;
     if (!element) return;
     const observer = new ResizeObserver(() => {
-      if (!active) return;
+      if (!active || !attachedRef.current) return;
       fitRef.current?.fit();
       const term = termRef.current;
       if (term) resizeTerminal(contextKey, terminalId, term.cols, term.rows);
     });
     observer.observe(element);
-    if (active) {
+    if (active && attachedRef.current) {
       requestAnimationFrame(() => {
         fitRef.current?.fit();
         const term = termRef.current;

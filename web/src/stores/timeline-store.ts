@@ -414,6 +414,8 @@ interface TimelineState {
   timeline: TimelineEntry[];
   loading: boolean;
   expandedReasoning: Set<string>;
+  /** Whether to auto-accept all incoming approval requests. */
+  autoApprove: boolean;
   approvals: Record<string, ApprovalRequest>;
   userInputRequests: Record<string, UserInputRequest>;
   tokenUsageByTurn: Record<string, ThreadTokenUsage>;
@@ -508,6 +510,7 @@ interface TimelineState {
   addSystemErrorForThread: (threadId: string, message: string) => void;
   setThreadTitleForThread: (threadId: string, title: string | null) => void;
   resolveApprovalByRequestIdForThread: (threadId: string, requestId: string | number) => void;
+  setAutoApprove: (enabled: boolean) => void;
 }
 
 export const useTimelineStore = create<TimelineState>((set, get) => {
@@ -527,6 +530,12 @@ export const useTimelineStore = create<TimelineState>((set, get) => {
 
   const selectedThread = (): string | null => get().threadId;
 
+  // Persist autoApprove to localStorage
+  const savedAutoApprove = (() => {
+    try { return localStorage.getItem('codex.autoApprove') === 'true'; }
+    catch { return false; }
+  })();
+
   return {
     selectedThreadId: null,
     threadsById: {},
@@ -540,6 +549,7 @@ export const useTimelineStore = create<TimelineState>((set, get) => {
     timeline: [],
     loading: false,
     expandedReasoning: new Set<string>(),
+    autoApprove: savedAutoApprove,
     approvals: {},
     userInputRequests: {},
     tokenUsageByTurn: {},
@@ -1080,6 +1090,12 @@ export const useTimelineStore = create<TimelineState>((set, get) => {
           pendingResolvedRequestIds: new Set(runtime.pendingResolvedRequestIds).add(requestKey),
         };
       });
+    },
+
+    setAutoApprove: (enabled) => {
+      try { localStorage.setItem('codex.autoApprove', String(enabled)); }
+      catch { /* ignore */ }
+      set({ autoApprove: enabled });
     },
   };
 });

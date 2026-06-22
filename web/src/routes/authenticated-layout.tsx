@@ -2,9 +2,10 @@
  * Authenticated layout: sidebar + header + main content outlet.
  * Replaces the old App.tsx conditional rendering.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Outlet, useNavigate, useRouterState } from '@tanstack/react-router';
+import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import {
@@ -16,13 +17,25 @@ import { ChatHeader } from '@/components/chat/chat-header';
 import { ThreadSidebar } from '@/components/chat/thread-sidebar';
 import { SnackbarContainer } from '@/components/snackbar/snackbar-container';
 import { CodexStatusBanner } from '@/components/codex-status-banner';
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from '@/components/ui/resizable';
+import type { PanelImperativeHandle } from 'react-resizable-panels';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
 import { useCodexSocket } from '@/hooks/use-codex-socket';
 import { useFilesStore } from '@/stores/files-store';
 import { useLayoutStore } from '@/stores/layout-store';
 import { useTimelineStore } from '@/stores/timeline-store';
 import { useThemeStore } from '@/stores/theme-store';
+import type { SidePanelType } from '@/stores/layout-store';
 import { cn } from '@/lib/utils';
+import { FilesPanel } from '@/components/files/files-panel';
+import { TerminalRiskGate } from '@/components/terminal/terminal-risk-gate';
+import { TerminalWorkspace } from '@/components/terminal/terminal-workspace';
+import { IntegrationsPage } from '@/components/integrations/integrations-page';
+import { SettingsPage } from '@/components/settings/settings-page';
 import { clearApiToken } from '@/auth-token';
 import { getSocket, resetSocket } from '@/socket';
 import { filesGetRoots, filesAddRoot } from '@/generated/api';
@@ -46,7 +59,26 @@ function approvalFromPending(request: PendingServerRequestDto): ApprovalRequest 
   const params = request.params;
   const turnId = typeof params.turnId === 'string' ? params.turnId : request.turnId;
   const itemId = typeof params.itemId === 'string' ? params.itemId : request.itemId;
-  if (!turnId || !itemId || request.status !== 'pending') return null;
+  if (!turnId || request.status !== 'pending') return null;
+
+  // MCP elicitation (tool call approval from MCP servers)
+  if (request.method === 'mcpServer/elicitation/request') {
+    const meta = (params._meta ?? {}) as Record<string, unknown>;
+    const toolDesc = (meta.tool_description as string) ?? params.message ?? 'MCP tool call';
+    return {
+      requestId: request.requestId,
+      kind: 'commandExecution',
+      threadId: request.threadId,
+      turnId,
+      itemId: itemId ?? `mcp-${request.requestId}`,
+      status: 'pending',
+      command: String(toolDesc),
+      reason: (params.message as string) ?? null,
+      availableDecisions: ['accept', 'decline'],
+    };
+  }
+
+  if (!itemId) return null;
 
   if (request.method === 'item/commandExecution/requestApproval') {
     return {
@@ -90,6 +122,34 @@ function readMaxIdleSubscriptions(
   return typeof value === 'number' && Number.isFinite(value)
     ? value
     : DEFAULT_MAX_IDLE_SUBSCRIPTIONS;
+}
+
+/** Returns the i18n label key for a side panel type. */
+function sidePanelLabel(panel: SidePanelType): string {
+  switch (panel) {
+    case 'files': return 'Files';
+    case 'terminal': return 'Terminal';
+    case 'integrations': return 'Integrations';
+    case 'settings': return 'Settings';
+  }
+}
+
+/** Renders the content for the right-hand side panel. */
+function SidePanelContent({ type, cwd }: { type: SidePanelType; cwd: string | null }) {
+  switch (type) {
+    case 'files':
+      return <FilesPanel />;
+    case 'terminal':
+      return (
+        <TerminalRiskGate onCancel={() => { /* close handled by parent */ }}>
+          <TerminalWorkspace contextKey="global" cwd={cwd ?? undefined} />
+        </TerminalRiskGate>
+      );
+    case 'integrations':
+      return <IntegrationsPage embedded={true} />;
+    case 'settings':
+      return <SettingsPage />;
+  }
 }
 
 export function AuthenticatedLayout() {
@@ -281,6 +341,20 @@ export function AuthenticatedLayout() {
   const sidebarOpen = useLayoutStore((s) => s.sidebarOpen);
   const setSidebarOpen = useLayoutStore((s) => s.setSidebarOpen);
   const desktopSidebarCollapsed = useLayoutStore((s) => s.desktopSidebarCollapsed);
+  const sidePanel = useLayoutStore((s) => s.sidePanel);
+  const setSidePanel = useLayoutStore((s) => s.setSidePanel);
+
+  const sidePanelRef = useRef<PanelImperativeHandle | null>(null);
+  // Imperatively collapse/expand the side panel when sidePanel state changes.
+  useEffect(() => {
+    const panel = sidePanelRef.current;
+    if (!panel) return;
+    if (sidePanel) {
+      panel.expand();
+    } else {
+      panel.collapse();
+    }
+  }, [sidePanel, sidePanelRef]);
 
   // Auto-close sidebar sheet on route change
   useEffect(() => {
@@ -326,7 +400,46 @@ export function AuthenticatedLayout() {
             onToggleDiagnostics={handleToggleDiagnostics}
           />
           <CodexStatusBanner />
-          <Outlet />
+          <ResizablePanelGroup
+            orientation="horizontal"
+            className="min-h-0 flex-1"
+          >
+            <ResizablePanel
+              id="chat-panel"
+              defaultSize={60}
+              minSize={20}
+              className="min-h-0 overflow-hidden"
+            >
+              <div className="flex h-full min-h-0 flex-col overflow-hidden"><Outlet /></div>
+            </ResizablePanel>
+            <ResizableHandle withHandle />
+            <ResizablePanel
+              id="side-panel"
+              panelRef={sidePanelRef}
+              defaultSize={40}
+              collapsedSize={0}
+              collapsible
+              minSize={0}
+              className="min-h-0 relative z-10"
+            >
+              <div className="flex h-full flex-col">
+                <div className="flex items-center justify-between border-b border-border px-3 py-2">
+                  <span className="text-sm font-medium">{sidePanel ? t(sidePanelLabel(sidePanel)) : ''}</span>
+                  <button
+                    type="button"
+                    onClick={() => setSidePanel(null)}
+                    className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+                    aria-label={t('Close panel')}
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="min-h-0 flex-1 overflow-auto">
+                  {sidePanel && <SidePanelContent type={sidePanel} cwd={threadCwd} />}
+                </div>
+              </div>
+            </ResizablePanel>
+          </ResizablePanelGroup>
         </div>
       </div>
       <SnackbarContainer />

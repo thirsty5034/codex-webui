@@ -21,6 +21,9 @@ export type SidebarViewState =
   | { type: 'workspaceDetail'; cwd: string }
   | { type: 'archivedDetail' };
 
+/** Side panel type — opened alongside the main content (chat/files/etc). */
+export type SidePanelType = 'files' | 'terminal' | 'integrations' | 'settings';
+
 // ── Store interface ──────────────────────────────────────────────────
 
 interface LayoutState {
@@ -35,6 +38,8 @@ interface LayoutState {
   sidebarOpen: boolean;
   /** Current sidebar navigation view. Resets to overview on refresh. */
   sidebarView: SidebarViewState;
+  /** Currently open side panel (right pane), or null. */
+  sidePanel: SidePanelType | null;
 
   // ── Actions ────────────────────────────────────────────────────────
   setSidebarOpen: (open: boolean) => void;
@@ -46,6 +51,8 @@ interface LayoutState {
   toggleCollapsedGroup: (key: string) => void;
   /** Check if a workspace group is collapsed. */
   isGroupCollapsed: (key: string) => boolean;
+  setSidePanel: (panel: SidePanelType | null) => void;
+  toggleSidePanel: (panel: SidePanelType) => void;
 }
 
 export const useLayoutStore = create<LayoutState>()(
@@ -58,6 +65,7 @@ export const useLayoutStore = create<LayoutState>()(
       // ── Runtime defaults ─────────────────────────────────────────────
       sidebarOpen: false,
       sidebarView: { type: 'overview' },
+      sidePanel: null,
 
       // ── Actions ──────────────────────────────────────────────────────
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
@@ -81,6 +89,10 @@ export const useLayoutStore = create<LayoutState>()(
         }),
 
       isGroupCollapsed: (key) => get().collapsedGroupKeys.includes(key),
+
+      setSidePanel: (panel) => set({ sidePanel: panel }),
+      toggleSidePanel: (panel) =>
+        set((s) => ({ sidePanel: s.sidePanel === panel ? null : panel })),
     }),
     {
       name: 'codex.webui.layout',

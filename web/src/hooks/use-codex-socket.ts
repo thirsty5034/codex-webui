@@ -9,7 +9,7 @@ import { useConnectionStore } from '../stores/connection-store';
 import { useTimelineStore } from '../stores/timeline-store';
 import { showSnackbar } from '@/stores/snackbar-store';
 import { handleNotification, type NotificationContext } from './notification-handlers';
-import { tokenUsageReadThreadTokenUsage, turnDiffReadThreadTurnDiffs, turnErrorsReadThreadTurnErrors, threadsResumeThread } from '@/generated/api/sdk.gen';
+import { tokenUsageReadThreadTokenUsage, turnDiffReadThreadTurnDiffs, turnErrorsReadThreadTurnErrors, threadsResumeThread, pendingApprovalsRespond } from '@/generated/api/sdk.gen';
 import { parseAvailableDecisions, parseStringArray, parseNetworkAmendments } from '@/lib/approval-parsers';
 import { userInputFromSocket } from '@/lib/user-input-parsers';
 import i18n from '@/i18n';
@@ -211,6 +211,32 @@ export function useCodexSocket(enabled = true) {
       params: Record<string, unknown>;
     }) => {
       const { id, method, params } = request;
+      const reqThreadId = params.threadId as string;
+      const turnId = params.turnId as string;
+      const itemId = (params.itemId as string) ?? `mcp-${id}`;
+      const store = useTimelineStore.getState();
+      const title = store.getThreadTitle(reqThreadId);
+      let snackbarMessage: string | null = null;
+
+      // Handle MCP elicitation (tool call approval from MCP servers)
+      if (method === 'mcpServer/elicitation/request') {
+        if (typeof reqThreadId !== 'string' || typeof turnId !== 'string') return;
+        const meta = (params._meta ?? {}) as Record<string, unknown>;
+        const toolDesc = (meta.tool_description as string) ?? params.message ?? 'MCP tool call';
+        store.addApprovalForThread(reqThreadId, {
+          requestId: id,
+          kind: 'commandExecution',
+          threadId: reqThreadId,
+          turnId,
+          itemId,
+          status: 'pending',
+          command: String(toolDesc),
+          reason: (params.message as string) ?? null,
+          availableDecisions: ['accept', 'decline'],
+        });
+        snackbarMessage = i18n.t('Approval needed in {{thread}}', { thread: title });
+      }
+
       if (
         typeof params.threadId !== 'string' ||
         typeof params.turnId !== 'string' ||
@@ -218,13 +244,6 @@ export function useCodexSocket(enabled = true) {
       ) {
         return;
       }
-      const reqThreadId = params.threadId;
-      const turnId = params.turnId;
-      const itemId = params.itemId;
-      const store = useTimelineStore.getState();
-      const title = store.getThreadTitle(reqThreadId);
-      let snackbarMessage: string | null = null;
-
       if (method === 'item/commandExecution/requestApproval') {
         store.addApprovalForThread(reqThreadId, {
           requestId: id,
@@ -255,6 +274,22 @@ export function useCodexSocket(enabled = true) {
           grantRoot: (params.grantRoot as string) ?? null,
         });
         snackbarMessage = i18n.t('Approval needed in {{thread}}', { thread: title });
+      }
+
+      // Auto-approve: if enabled, immediately accept any pending approval
+      if (
+        (method === 'item/commandExecution/requestApproval' ||
+          method === 'item/fileChange/requestApproval' ||
+          method === 'mcpServer/elicitation/request') &&
+        store.autoApprove
+      ) {
+        void pendingApprovalsRespond({
+          path: { requestId: String(id) },
+          body: { result: { decision: 'accept' } },
+        })
+          .then(() => store.resolveApprovalForThread(reqThreadId, itemId, 'accepted'))
+          .catch(() => undefined);
+        snackbarMessage = null;
       }
 
       if (method === 'item/tool/requestUserInput') {

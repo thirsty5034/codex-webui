@@ -14,7 +14,9 @@ import {
   codexStatusUpdateApprovalPolicyMutation,
   codexStatusUpdateSandboxModeMutation,
 } from '@/generated/api/@tanstack/react-query.gen';
+import { pendingApprovalsRespond } from '@/generated/api/sdk.gen';
 import { cn } from '@/lib/utils';
+import { useTimelineStore } from '@/stores/timeline-store';
 
 const APPROVAL_OPTIONS = ['on-failure', 'on-request', 'never', 'untrusted'] as const;
 const SANDBOX_OPTIONS = ['read-only', 'workspace-write', 'danger-full-access'] as const;
@@ -51,6 +53,9 @@ export function SecurityPolicyBadge() {
     onSuccess: invalidateStatus,
   });
 
+  const autoApprove = useTimelineStore((s) => s.autoApprove);
+  const setAutoApprove = useTimelineStore((s) => s.setAutoApprove);
+
   const config = data?.config.data as ConfigSummary | undefined;
   if (!config) return null;
 
@@ -58,7 +63,7 @@ export function SecurityPolicyBadge() {
   const currentSandbox = config.sandboxMode ?? 'unknown';
   const networkAccess = describeNetwork(config.sandboxNetworkAccess);
   const risky =
-    currentSandbox === 'danger-full-access' || currentApproval === 'never';
+    currentSandbox === 'danger-full-access' || currentApproval === 'never' || autoApprove;
   const Icon = risky ? ShieldAlert : ShieldCheck;
   const pending = updateApproval.isPending || updateSandbox.isPending;
 
@@ -75,7 +80,7 @@ export function SecurityPolicyBadge() {
           <span className="hidden sm:inline">
             {t(currentSandbox)}
             <span className="mx-1 text-muted-foreground">·</span>
-            {t(currentApproval)}
+            {autoApprove ? t('Approve all') : t(currentApproval)}
           </span>
         </Button>
       </PopoverTrigger>
@@ -102,14 +107,37 @@ export function SecurityPolicyBadge() {
             <OptionRow
               key={option}
               label={option}
-              active={currentApproval === option}
+              active={!autoApprove && currentApproval === option}
               risky={option === 'never'}
               disabled={pending}
-              onClick={() =>
-                updateApproval.mutate({ body: { approvalPolicy: option } })
-              }
+              onClick={() => {
+                setAutoApprove(false);
+                updateApproval.mutate({ body: { approvalPolicy: option } });
+              }}
             />
           ))}
+          <OptionRow
+            key="auto-approve"
+            label={t('Approve all')}
+            active={autoApprove}
+            risky={true}
+            disabled={pending}
+            onClick={() => {
+              setAutoApprove(true);
+              updateApproval.mutate({ body: { approvalPolicy: 'on-request' } });
+              const state = useTimelineStore.getState();
+              for (const a of Object.values(state.approvals)) {
+                if (a.status === 'pending') {
+                  void pendingApprovalsRespond({
+                    path: { requestId: String(a.requestId) },
+                    body: { result: { decision: 'accept' } },
+                  })
+                    .then(() => state.resolveApproval(a.itemId, 'accepted'))
+                    .catch(() => undefined);
+                }
+              }
+            }}
+          />
         </div>
 
         {/* Sandbox mode */}
@@ -124,12 +152,13 @@ export function SecurityPolicyBadge() {
               active={currentSandbox === option}
               risky={option === 'danger-full-access'}
               disabled={pending}
-              onClick={() =>
-                updateSandbox.mutate({ body: { sandboxMode: option } })
-              }
+              onClick={() => {
+                updateSandbox.mutate({ body: { sandboxMode: option } });
+              }}
             />
           ))}
         </div>
+
       </PopoverContent>
     </Popover>
   );

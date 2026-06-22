@@ -55,6 +55,7 @@ function groupConsecutiveToolCalls(items: TurnItem[]): GroupedEntry[] {
 
 interface Props {
   entry: Extract<TimelineEntry, { kind: 'turn' }>;
+  onShare?: () => void;
 }
 
 /** Renders a single turn item with its blocking request cards (approval / user input). */
@@ -112,7 +113,7 @@ function ItemWithRequests({ item }: { item: TurnItem }) {
   }
 }
 
-export function TurnBlock({ entry }: Props) {
+export function TurnBlock({ entry, onShare }: Props) {
   const { t } = useTranslation();
   const userInputRequests = useTimelineStore((s) => s.userInputRequests);
   // Render user-input requests whose itemId doesn't match any existing turn item.
@@ -121,15 +122,22 @@ export function TurnBlock({ entry }: Props) {
     (req) => req.turnId === entry.turnId && !itemIds.has(req.itemId),
   );
 
+  // Collect agentMessage text for copy (excludes reasoning/tool calls)
+  const getAiMessageText = () =>
+    entry.items
+      .filter((i) => i.type === 'agentMessage' && i.content)
+      .map((i) => i.content)
+      .join('\n\n');
+
   return (
-    <div className="mb-6 flex gap-3">
+    <div className="group/turn mb-6 flex gap-3">
       <Avatar className="mt-1 h-8 w-8 shrink-0">
         <AvatarFallback className="glass-1 bg-transparent">
           <Bot className="h-4 w-4" />
         </AvatarFallback>
       </Avatar>
 
-      <div className="glass-1 min-w-0 flex-1 space-y-2 rounded-2xl px-4 py-3">
+      <div className="glass-1 relative min-w-0 flex-1 space-y-2 rounded-2xl px-4 py-3">
         {entry.plan && <PlanPanel plan={entry.plan} completed={entry.completed} />}
 
         {groupConsecutiveToolCalls(entry.items).map((group) => {
@@ -151,7 +159,7 @@ export function TurnBlock({ entry }: Props) {
 
         {entry.diff && <DiffViewer diff={entry.diff} />}
 
-        {entry.completed && <TurnTokenFooter turnId={entry.turnId} />}
+        {entry.completed && <TurnTokenFooter turnId={entry.turnId} getCopyText={getAiMessageText} onShare={onShare} />}
 
         {!entry.completed && entry.items.length === 0 && !entry.plan && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -159,6 +167,7 @@ export function TurnBlock({ entry }: Props) {
             {t('Thinking...')}
           </div>
         )}
+
       </div>
     </div>
   );

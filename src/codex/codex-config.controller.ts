@@ -37,6 +37,12 @@ type JsonRecord = Record<string, JsonSafeValue>;
 /** Pattern matching sensitive key names that should be redacted in API output. */
 const SENSITIVE_KEY_RE = /(?:token|password|api[_-]?key|secret|authorization)/i;
 
+/** Keys that match SENSITIVE_KEY_RE but are safe config values (not secrets). */
+const SENSITIVE_KEY_ALLOWLIST = new Set([
+  'model_auto_compact_token_limit',
+  'tool_output_token_limit',
+]);
+
 @ApiTags('codex')
 @ApiBearerAuth()
 @ApiUnauthorizedResponse({ type: ApiErrorResponseDto })
@@ -226,7 +232,7 @@ export class CodexConfigController {
 
 /** Recursively redacts sensitive config values while preserving object shape. */
 function redactSecrets(value: JsonSafeValue, parentKey = ''): JsonSafeValue {
-  if (SENSITIVE_KEY_RE.test(parentKey) && value !== null) {
+  if (SENSITIVE_KEY_RE.test(parentKey) && !SENSITIVE_KEY_ALLOWLIST.has(parentKey) && value !== null) {
     return '[redacted]';
   }
 

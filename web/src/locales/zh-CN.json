@@ -331,9 +331,6 @@
   "No skills available": "无可用技能",
   "No matching skills": "无匹配技能",
   "No matching files": "无匹配文件",
-  "Model": "模型",
-  "Reasoning": "推理",
-  "MCP Servers": "MCP 服务器",
   "Codex": "Codex",
   "Codex Configuration": "Codex 配置",
   "Manage Codex app-server settings. Changes are saved to user config.toml and hot-reloaded.": "管理 Codex 应用服务器设置。更改保存至用户 config.toml 并热加载。",
@@ -453,7 +450,6 @@
   "Configure OnlyOffice to preview presentations": "请配置 OnlyOffice 以预览演示文稿",
   "Failed to load OnlyOffice preview": "OnlyOffice 预览加载失败",
   "Failed to load OnlyOffice editor": "OnlyOffice 编辑器加载失败",
-
   "error.http.bad_request": "请求参数错误",
   "error.http.unauthorized": "未授权，请重新登录",
   "error.http.forbidden": "无权限执行此操作",
@@ -462,17 +458,14 @@
   "error.http.payload_too_large": "请求体过大",
   "error.http.request_failed": "请求失败（{{status}}）",
   "error.http.internal_error": "服务器内部错误",
-
   "error.validation.field_required": "{{field}} 为必填项",
   "error.validation.body_required": "请求体为必填项",
   "error.validation.type_mismatch": "{{field}} 必须为 {{type}} 类型",
   "error.validation.field_invalid": "{{field}} 无效",
-
   "error.auth.missing_token": "缺少身份认证令牌",
   "error.auth.invalid_token": "身份认证令牌无效",
   "error.auth.missing_header": "缺少 Authorization 请求头",
   "error.auth.invalid_api_key": "API 密钥无效",
-
   "error.files.path_required": "路径为必填项",
   "error.files.path_not_found": "路径未找到：{{path}}",
   "error.files.path_outside_workspace": "路径不在允许的工作区范围内",
@@ -504,7 +497,6 @@
   "error.files.content_required": "路径和内容为必填项",
   "error.files.source_and_dest_required": "源路径和目标路径为必填项",
   "error.files.dest_required": "目标路径为必填项",
-
   "error.terminal.max_sessions_reached": "已达终端会话上限（{{max}}）",
   "error.terminal.exited": "终端进程已退出",
   "error.terminal.input_too_large": "终端输入过大",
@@ -516,7 +508,6 @@
   "error.terminal.not_found": "终端未找到",
   "error.terminal.context_mismatch": "终端上下文不匹配",
   "error.terminal.socket_not_attached": "Socket 未连接到此终端",
-
   "error.threads.invalid_limit": "limit 必须为正数",
   "error.threads.invalid_sort_key": "sortKey 必须为 created_at 或 updated_at",
   "error.threads.invalid_model": "模型名称不能为空",
@@ -530,7 +521,6 @@
   "error.threads.invalid_input_type": "input[{{index}}] 类型无效",
   "error.threads.invalid_approval_policy": "审批策略无效",
   "error.threads.invalid_sandbox_mode": "沙盒模式无效",
-
   "error.settings.not_found": "设置项未找到：{{key}}",
   "error.settings.updates_required": "updates 必须为数组",
   "error.settings.key_required": "每个设置项必须包含 key",
@@ -539,7 +529,6 @@
   "error.settings.out_of_range": "{{key}} 必须在 {{min}} 到 {{max}} 之间",
   "error.settings.not_in_enum": "{{key}} 的值必须为以下之一：{{values}}",
   "error.settings.invalid_category": "无效的设置分类：{{category}}",
-
   "error.onlyoffice.not_configured": "OnlyOffice 未配置",
   "error.onlyoffice.jwt_required": "OnlyOffice 编辑模式需要配置 JWT 密钥",
   "error.onlyoffice.file_required": "OnlyOffice 需要文件路径",
@@ -556,7 +545,6 @@
   "error.onlyoffice.save_no_body": "OnlyOffice 保存响应为空",
   "error.onlyoffice.invalid_url": "{{label}} 必须为有效的 HTTP(S) URL",
   "error.onlyoffice.public_host_required": "无法确定公开主机地址，请在设置中配置 general.publicBaseUrl",
-
   "error.archive.invalid_entry_path": "压缩包条目路径无效",
   "error.archive.entry_not_found": "压缩包条目未找到",
   "error.archive.entry_not_file": "压缩包条目不是文件",
@@ -572,7 +560,6 @@
   "error.archive.seven_zip_unavailable": "7za 工具在服务器上不可用",
   "error.archive.rar_unavailable": "unrar-async 解压器不可用",
   "error.archive.rar_entry_no_stream": "RAR 条目没有可读流",
-
   "error.chat.multipart_unavailable": "文件上传功能不可用",
   "error.chat.file_required": "文件为必填项",
   "error.chat.filename_required": "文件名为必填项",
@@ -582,7 +569,6 @@
   "error.chat.image_outside_root": "本地图片路径不在上传目录内",
   "error.chat.image_not_file": "本地图片路径必须是文件",
   "error.chat.file_invalid": "文件无效",
-
   "error.codex.raw_content_invalid": "原始配置内容必须为字符串",
   "error.codex.edits_not_array": "配置编辑项必须为数组",
   "error.codex.edit_invalid": "索引 {{index}} 处的配置编辑项无效",
@@ -590,27 +576,31 @@
   "error.codex.value_invalid": "{{key}} 的值无效",
   "error.codex.value_invalid_json": "{{key}} 的 JSON 值无效",
   "error.codex.write_failed": "配置写入失败",
-
   "error.approvals.result_required": "审批结果为必填项",
   "error.approvals.not_found": "待处理请求未找到",
   "error.approvals.already_resolved": "待处理请求已被处理",
   "error.approvals.server_not_connected": "Codex app-server 未连接",
   "error.approvals.already_handled": "审批已被其他设备处理",
-
   "error.skills.cwd_required": "工作目录为必填项",
   "error.skills.path_or_name_required": "路径或名称为必填项",
-
   "error.mcp.invalid_server_detail": "MCP 服务器详情无效",
   "error.mcp.scopes_invalid": "scopes 必须为字符串数组",
   "error.mcp.scopes_empty": "scopes 不能包含空字符串",
   "error.mcp.timeout_invalid": "timeoutSecs 必须为整数",
   "error.mcp.timeout_too_large": "timeoutSecs 不能超过 {{max}}",
-
   "error.account.login_id_required": "loginId 为必填项",
   "error.account.api_key_required": "apiKey 为必填项",
   "error.account.access_token_required": "accessToken 为必填项",
   "error.account.chatgpt_account_id_required": "chatgptAccountId 为必填项",
   "error.account.invalid_login_type": "登录类型无效",
-
-  "error.plugins.field_required": "{{field}} 为必填项"
+  "error.plugins.field_required": "{{field}} 为必填项",
+  "Select messages": "选择消息",
+  "Copy selected": "复制选中",
+  "Select": "选择",
+  "Deselect": "取消选择",
+  "{{count}} selected": "已选择 {{count}} 条",
+  "Select all": "全选",
+  "Approve all": "全部放行",
+  "Auto-approve": "自动放行",
+  "Automatically accept all approval requests.": "自动接受所有审批请求。"
 }

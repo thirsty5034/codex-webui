@@ -238,7 +238,7 @@ export function ChatHeader({ dark, onToggleDark, onToggleDiagnostics }: Props) {
           <>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleDiagnosticsToggle}>
+                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleDiagnosticsToggle} aria-label={t('Diagnostics')}>
                   <Activity className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
@@ -246,7 +246,7 @@ export function ChatHeader({ dark, onToggleDark, onToggleDiagnostics }: Props) {
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => void navigate({ to: '/settings' })}>
+                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => void navigate({ to: '/settings' })} aria-label={t('Settings')}>
                   <Settings className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
@@ -254,7 +254,7 @@ export function ChatHeader({ dark, onToggleDark, onToggleDiagnostics }: Props) {
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={toggleLanguage}>
+                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={toggleLanguage} aria-label={i18n.language.startsWith('zh') ? 'English' : '简体中文'}>
                   <Globe className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
@@ -262,7 +262,7 @@ export function ChatHeader({ dark, onToggleDark, onToggleDiagnostics }: Props) {
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={onToggleDark}>
+                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={onToggleDark} aria-label={dark ? t('Light mode') : t('Dark mode')}>
                   {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                 </Button>
               </TooltipTrigger>

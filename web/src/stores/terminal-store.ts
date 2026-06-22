@@ -137,7 +137,8 @@ export const useTerminalStore = create<TerminalState>()(
             }
           }
 
-          if (terminals.length === 0 && previousIds.length === 0 && autoCreate) {
+          // Auto-create when no live terminals exist (covers fresh start AND expired sessions)
+          if (terminals.length === 0 && autoCreate) {
             await get().createTerminal(contextKey, cwd);
           }
         };

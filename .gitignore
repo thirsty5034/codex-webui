@@ -61,3 +61,8 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 .codex
 CLAUDE.md
 codex-schema/
+
+# Dev environment docs (contain internal URLs)
+agent.md
+docs/
+src/public/

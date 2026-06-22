@@ -4,6 +4,7 @@
  */
 import { useNavigate, useRouterState } from '@tanstack/react-router';
 import { ArrowLeft } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -24,14 +25,21 @@ function tabLabel(tab: IntegrationTab): string {
   return labels[tab];
 }
 
-export function IntegrationsPage() {
+interface IntegrationsPageProps {
+  /** When true, tab state is managed locally instead of via URL routing. */
+  embedded?: boolean;
+}
+
+export function IntegrationsPage({ embedded = false }: IntegrationsPageProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const threadId = useTimelineStore((s) => s.threadId);
-  const tab = useRouterState({
+  const routeTab = useRouterState({
     select: (state) =>
       ((state.location.search as { tab?: IntegrationTab }).tab ?? 'plugins'),
   });
+  const [localTab, setLocalTab] = useState<IntegrationTab>('plugins');
+  const tab = embedded ? localTab : routeTab;
 
   const navigateBack = () => {
     if (threadId) {
@@ -41,19 +49,29 @@ export function IntegrationsPage() {
     }
   };
 
+  const handleTabChange = (s: IntegrationTab) => {
+    if (embedded) {
+      setLocalTab(s);
+    } else {
+      void navigate({ to: '/integrations', search: { tab: s } });
+    }
+  };
+
   return (
     <div className="flex flex-1 flex-col overflow-auto">
       <div className="mx-auto w-full max-w-4xl space-y-6 px-4 py-4 sm:px-6 sm:py-8">
         {/* Header */}
         <div className="flex items-center gap-3">
-          <Button
-            size="icon"
-            variant="ghost"
-            className="h-8 w-8"
-            onClick={navigateBack}
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
+          {!embedded && (
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8"
+              onClick={navigateBack}
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          )}
           <h1 className="text-xl font-semibold">{t('Integrations')}</h1>
         </div>
 
@@ -63,7 +81,7 @@ export function IntegrationsPage() {
               key={s}
               variant={tab === s ? 'default' : 'outline'}
               size="sm"
-              onClick={() => void navigate({ to: '/integrations', search: { tab: s } })}
+              onClick={() => handleTabChange(s)}
             >
               {t(tabLabel(s))}
             </Button>

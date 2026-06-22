@@ -39,11 +39,13 @@ import { DirectoryPickerDialog } from './sidebar/directory-picker-dialog';
 /** Derives the active "view" from the current route path. */
 function useActiveView(): 'chat' | 'files' | 'terminal' | 'diagnostics' | 'settings' | 'integrations' | 'other' {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  if (pathname.startsWith('/files')) return 'files';
-  if (pathname.startsWith('/terminal')) return 'terminal';
+  const sidePanel = useLayoutStore((s) => s.sidePanel);
+  // Side panel takes precedence for highlighting
+  if (sidePanel === 'files') return 'files';
+  if (sidePanel === 'terminal') return 'terminal';
+  if (sidePanel === 'integrations') return 'integrations';
+  if (sidePanel === 'settings') return 'settings';
   if (pathname.startsWith('/diagnostics')) return 'diagnostics';
-  if (pathname.startsWith('/integrations')) return 'integrations';
-  if (pathname.startsWith('/settings')) return 'settings';
   if (pathname === '/' || pathname.startsWith('/t/')) return 'chat';
   return 'other';
 }
@@ -78,6 +80,7 @@ export function ThreadSidebar() {
   const collapsedGroupKeys = useLayoutStore((s) => s.collapsedGroupKeys);
   const toggleCollapsedGroup = useLayoutStore((s) => s.toggleCollapsedGroup);
   const toggleDesktopSidebarCollapsed = useLayoutStore((s) => s.toggleDesktopSidebarCollapsed);
+  const toggleSidePanel = useLayoutStore((s) => s.toggleSidePanel);
   // Derive Set<string> for child components that expect it
   const collapsedGroups = useMemo(() => new Set(collapsedGroupKeys), [collapsedGroupKeys]);
 
@@ -313,7 +316,7 @@ export function ThreadSidebar() {
       <div className="space-y-0.5 px-2 py-2">
         <button
           type="button"
-          onClick={() => void navigate({ to: '/files' })}
+          onClick={() => toggleSidePanel('files')}
           className={cn(
             'flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors',
             activeView === 'files'
@@ -326,7 +329,7 @@ export function ThreadSidebar() {
         </button>
         <button
           type="button"
-          onClick={() => void navigate({ to: '/terminal' })}
+          onClick={() => toggleSidePanel('terminal')}
           className={cn(
             'flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors',
             activeView === 'terminal'
@@ -339,7 +342,7 @@ export function ThreadSidebar() {
         </button>
         <button
           type="button"
-          onClick={() => void navigate({ to: '/integrations', search: { tab: 'plugins' } })}
+          onClick={() => toggleSidePanel('integrations')}
           className={cn(
             'flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors',
             activeView === 'integrations'
@@ -352,7 +355,7 @@ export function ThreadSidebar() {
         </button>
         <button
           type="button"
-          onClick={() => void navigate({ to: '/settings' })}
+          onClick={() => toggleSidePanel('settings')}
           className={cn(
             'flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors',
             activeView === 'settings'
