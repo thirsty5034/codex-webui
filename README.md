@@ -80,20 +80,64 @@
 
 ### Docker 部署（推荐）
 
-直接从 GHCR 拉取镜像，无需本地构建：
+#### 1. 创建 `.env` 文件
 
 ```bash
-# 创建 .env
 cat <<EOF > .env
 WEBUI_API_KEY=your-secret-key
 OPENAI_API_KEY=sk-xxx
 EOF
+```
 
-# 启动（自动拉取多架构镜像）
+#### 2. 创建 `docker-compose.yml`
+
+```yaml
+services:
+  codex-webui:
+    image: ghcr.io/limlll/codex-webui:latest
+    # 本地构建时注释上方 image，取消注释下方 build：
+    # build:
+    #   context: .
+    #   args:
+    #     CODEX_CLI_VERSION: "0.123.0"
+    ports:
+      - "${PORT:-8172}:8172"
+    environment:
+      NODE_ENV: production
+      PORT: 8172
+      WEBUI_API_KEY: ${WEBUI_API_KEY:?请在 .env 中设置 WEBUI_API_KEY}
+      WORKSPACE_ROOTS: /workspaces
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    volumes:
+      - root_home:/root          # 持久化 codex/MCP 配置及工具链
+      - workspaces:/workspaces   # 持久化工作区文件
+    # Codex 沙箱（bubblewrap）需要用户命名空间和挂载权限
+    cap_add:
+      - SYS_ADMIN
+    security_opt:
+      - apparmor:unconfined
+      - seccomp:unconfined
+    restart: unless-stopped
+
+volumes:
+  root_home:
+  workspaces:
+```
+
+#### 3. 启动
+
+```bash
 docker compose up -d
 ```
 
-或者手动运行：
+服务运行在 `http://localhost:8172`。
+
+> **说明**：
+> - `/root` 卷持久化 codex/claude/MCP 配置及运行时工具链，首次启动自动释放内置 seed。
+> - `WORKSPACE_ROOTS=/workspaces` 为挂载的工作区提供 bootstrap fallback。
+> - 如需本地构建镜像，取消 compose 中 `build` 的注释，并注释掉 `image` 行。
+
+#### 手动运行（不使用 Compose）
 
 ```bash
 docker run -d --name codex-webui \
@@ -102,12 +146,11 @@ docker run -d --name codex-webui \
   -e OPENAI_API_KEY=sk-xxx \
   -v codex_root:/root \
   -v codex_workspaces:/workspaces \
+  --cap-add SYS_ADMIN \
+  --security-opt apparmor=unconfined \
+  --security-opt seccomp=unconfined \
   ghcr.io/limlll/codex-webui:latest
 ```
-
-服务运行在 `http://localhost:8172`。
-
-> `/root` 卷持久化 codex/claude/MCP 配置及运行时工具链。首次启动自动释放内置 seed。
 
 ### 本地开发
 
