@@ -600,7 +600,5 @@
   "Deselect": "取消选择",
   "{{count}} selected": "已选择 {{count}} 条",
   "Select all": "全选",
-  "Approve all": "全部放行",
-  "Auto-approve": "自动放行",
   "Automatically accept all approval requests.": "自动接受所有审批请求。"
 }
