@@ -222,7 +222,7 @@ export function useCodexSocket(enabled = true) {
       if (method === 'mcpServer/elicitation/request') {
         if (typeof reqThreadId !== 'string' || typeof turnId !== 'string') return;
         const meta = (params._meta ?? {}) as Record<string, unknown>;
-        const toolDesc = (meta.tool_description as string) ?? params.message ?? 'MCP tool call';
+        const toolDesc = (meta.tool_description as string) ?? (typeof params.message === 'string' ? params.message : 'MCP tool call');
         store.addApprovalForThread(reqThreadId, {
           requestId: id,
           kind: 'commandExecution',
@@ -231,7 +231,7 @@ export function useCodexSocket(enabled = true) {
           itemId,
           status: 'pending',
           command: String(toolDesc),
-          reason: (params.message as string) ?? null,
+          reason: typeof params.message === 'string' ? params.message : null,
           availableDecisions: ['accept', 'decline'],
         });
         snackbarMessage = i18n.t('Approval needed in {{thread}}', { thread: title });

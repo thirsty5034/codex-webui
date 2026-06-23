@@ -124,7 +124,7 @@ export function SecurityPolicyBadge() {
             disabled={pending}
             onClick={() => {
               setAutoApprove(true);
-              updateApproval.mutate({ body: { approvalPolicy: 'on-request' } });
+              updateApproval.mutate({ body: { approvalPolicy: 'never' } });
               // Resolve pending approvals already in the local store (all threads).
               const state = useTimelineStore.getState();
               const resolveLocal = (approvals: Record<string, { status: string; requestId: string | number; itemId: string }>, threadId: string) => {
