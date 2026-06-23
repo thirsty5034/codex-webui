@@ -35,7 +35,6 @@ import { WorkspaceOverview } from './sidebar/workspace-overview';
 import { WorkspaceDetail } from './sidebar/workspace-detail';
 import { RenameDialog, ConfirmDialog } from './sidebar/sidebar-dialogs';
 import { DirectoryPickerDialog } from './sidebar/directory-picker-dialog';
-import { hydratePendingApprovals } from '@/lib/pending-approval-hydration';
 
 /** Derives the active "view" from the current route path. */
 function useActiveView(): 'chat' | 'files' | 'terminal' | 'diagnostics' | 'settings' | 'integrations' | 'other' {
@@ -143,8 +142,6 @@ export function ThreadSidebar() {
       void turnErrorsReadThreadTurnErrors({ path: { threadId: tid } })
         .then(({ data }) => data && hydrateTurnErrorsForThread(tid, data.errors))
         .catch(() => undefined);
-      // Hydrate pending approvals from server (catches approvals that arrived while disconnected).
-      void hydratePendingApprovals(tid);
     },
     onError: (_err, vars) => setLoadingForThread(vars.path.threadId, false),
   });

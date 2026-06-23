@@ -1,4 +1,5 @@
 /** Interactive security policy selector for the chat input area. */
+import { useEffect } from 'react';
 import { ShieldCheck, ShieldAlert } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -14,9 +15,7 @@ import {
   codexStatusUpdateApprovalPolicyMutation,
   codexStatusUpdateSandboxModeMutation,
 } from '@/generated/api/@tanstack/react-query.gen';
-import { pendingApprovalsRespond, pendingApprovalsListPending } from '@/generated/api/sdk.gen';
 import { cn } from '@/lib/utils';
-import { useTimelineStore } from '@/stores/timeline-store';
 
 const APPROVAL_OPTIONS = ['on-failure', 'on-request', 'never', 'untrusted'] as const;
 const SANDBOX_OPTIONS = ['read-only', 'workspace-write', 'danger-full-access'] as const;
@@ -53,17 +52,23 @@ export function SecurityPolicyBadge() {
     onSuccess: invalidateStatus,
   });
 
-  const autoApprove = useTimelineStore((s) => s.autoApprove);
-  const setAutoApprove = useTimelineStore((s) => s.setAutoApprove);
-
   const config = data?.config.data as ConfigSummary | undefined;
+
+  // Sync localStorage autoApprove with server-side policy:
+  // If server policy is not 'never' but autoApprove is true, reset it.
+  useEffect(() => {
+    if (config && autoApprove && config.approvalPolicy !== 'never') {
+      setAutoApprove(false);
+    }
+  }, [config?.approvalPolicy, autoApprove, setAutoApprove, config]);
+
   if (!config) return null;
 
   const currentApproval = describeApproval(config.approvalPolicy);
   const currentSandbox = config.sandboxMode ?? 'unknown';
   const networkAccess = describeNetwork(config.sandboxNetworkAccess);
   const risky =
-    currentSandbox === 'danger-full-access' || currentApproval === 'never' || autoApprove;
+    currentSandbox === 'danger-full-access' || currentApproval === 'never';
   const Icon = risky ? ShieldAlert : ShieldCheck;
   const pending = updateApproval.isPending || updateSandbox.isPending;
 
@@ -80,7 +85,7 @@ export function SecurityPolicyBadge() {
           <span className="hidden sm:inline">
             {t(currentSandbox)}
             <span className="mx-1 text-muted-foreground">·</span>
-            {autoApprove ? t('Approve all') : t(currentApproval)}
+            {t(currentApproval)}
           </span>
         </Button>
       </PopoverTrigger>
@@ -107,57 +112,14 @@ export function SecurityPolicyBadge() {
             <OptionRow
               key={option}
               label={option}
-              active={!autoApprove && currentApproval === option}
+              active={currentApproval === option}
               risky={option === 'never'}
               disabled={pending}
               onClick={() => {
-                setAutoApprove(false);
                 updateApproval.mutate({ body: { approvalPolicy: option } });
               }}
             />
           ))}
-          <OptionRow
-            key="auto-approve"
-            label={t('Approve all')}
-            active={autoApprove}
-            risky={true}
-            disabled={pending}
-            onClick={() => {
-              setAutoApprove(true);
-              updateApproval.mutate({ body: { approvalPolicy: 'never' } });
-              // Resolve pending approvals already in the local store (all threads).
-              const state = useTimelineStore.getState();
-              const resolveLocal = (approvals: Record<string, { status: string; requestId: string | number; itemId: string }>, threadId: string) => {
-                for (const a of Object.values(approvals)) {
-                  if (a.status === 'pending') {
-                    void pendingApprovalsRespond({
-                      path: { requestId: String(a.requestId) },
-                      body: { result: { decision: 'accept' } },
-                    })
-                      .then(() => state.resolveApprovalForThread(threadId, a.itemId, 'accepted'))
-                      .catch(() => undefined);
-                  }
-                }
-              };
-              resolveLocal(state.approvals, state.threadId ?? '');
-              for (const [tid, runtime] of Object.entries(state.threadsById)) {
-                resolveLocal(runtime.approvals, tid);
-              }
-              // Also fetch all server-side pending approvals and respond.
-              void pendingApprovalsListPending()
-                .then(({ data }) => {
-                  if (!data?.requests?.length) return;
-                  for (const req of data.requests) {
-                    if (req.status !== 'pending') continue;
-                    void pendingApprovalsRespond({
-                      path: { requestId: String(req.requestId) },
-                      body: { result: { decision: 'accept' } },
-                    }).catch(() => undefined);
-                  }
-                })
-                .catch(() => undefined);
-            }}
-          />
         </div>
 
         {/* Sandbox mode */}

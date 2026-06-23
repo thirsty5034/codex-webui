@@ -27,7 +27,6 @@ import {
   threadsReadThreadOptions,
 } from '@/generated/api/@tanstack/react-query.gen';
 import { tokenUsageReadThreadTokenUsage, turnDiffReadThreadTurnDiffs, turnErrorsReadThreadTurnErrors } from '@/generated/api/sdk.gen';
-import { hydratePendingApprovals } from '@/lib/pending-approval-hydration';
 
 /** Extracts a display label from a thread DTO. */
 function threadLabel(thread: { name?: string | null; preview?: string | null }): string {
@@ -100,8 +99,6 @@ export function ThreadView() {
       void turnErrorsReadThreadTurnErrors({ path: { threadId: tid } })
         .then(({ data }) => data && hydrateTurnErrorsForThread(tid, data.errors))
         .catch(() => undefined);
-      // Hydrate pending approvals from server (catches approvals that arrived while disconnected).
-      void hydratePendingApprovals(tid);
     },
     onError: (_err, vars) => {
       const failedId = vars.path.threadId;

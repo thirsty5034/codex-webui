@@ -9,7 +9,7 @@ import { useConnectionStore } from '../stores/connection-store';
 import { useTimelineStore } from '../stores/timeline-store';
 import { showSnackbar } from '@/stores/snackbar-store';
 import { handleNotification, type NotificationContext } from './notification-handlers';
-import { tokenUsageReadThreadTokenUsage, turnDiffReadThreadTurnDiffs, turnErrorsReadThreadTurnErrors, threadsResumeThread, pendingApprovalsRespond } from '@/generated/api/sdk.gen';
+import { tokenUsageReadThreadTokenUsage, turnDiffReadThreadTurnDiffs, turnErrorsReadThreadTurnErrors, threadsResumeThread } from '@/generated/api/sdk.gen';
 import { parseAvailableDecisions, parseStringArray, parseNetworkAmendments } from '@/lib/approval-parsers';
 import { userInputFromSocket } from '@/lib/user-input-parsers';
 import i18n from '@/i18n';
@@ -274,22 +274,6 @@ export function useCodexSocket(enabled = true) {
           grantRoot: (params.grantRoot as string) ?? null,
         });
         snackbarMessage = i18n.t('Approval needed in {{thread}}', { thread: title });
-      }
-
-      // Auto-approve: if enabled, immediately accept any pending approval
-      if (
-        (method === 'item/commandExecution/requestApproval' ||
-          method === 'item/fileChange/requestApproval' ||
-          method === 'mcpServer/elicitation/request') &&
-        store.autoApprove
-      ) {
-        void pendingApprovalsRespond({
-          path: { requestId: String(id) },
-          body: { result: { decision: 'accept' } },
-        })
-          .then(() => store.resolveApprovalForThread(reqThreadId, itemId, 'accepted'))
-          .catch(() => undefined);
-        snackbarMessage = null;
       }
 
       if (method === 'item/tool/requestUserInput') {

@@ -160,12 +160,12 @@ export function ApprovalItem({ approval }: Props) {
         {approval.command && (
           <div className="flex items-start gap-2 rounded bg-muted/60 px-2 py-1.5 font-mono text-xs">
             <Icon className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
-            <span className="break-all">{approval.command}</span>
+            <span className="break-all">{String(approval.command)}</span>
           </div>
         )}
 
         {approval.reason && (
-          <p className="text-xs text-muted-foreground">{approval.reason}</p>
+          <p className="text-xs text-muted-foreground">{String(approval.reason)}</p>
         )}
 
         {approval.grantRoot && (
