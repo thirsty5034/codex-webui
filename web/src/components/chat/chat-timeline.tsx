@@ -120,7 +120,9 @@ export function ChatTimeline({ onEditMessage }: Props) {
 
   const copySelectedEntries = useCallback(async () => {
     const parts: string[] = [];
-    for (const idx of selectedIndices) {
+    // Sort indices to maintain timeline order regardless of selection order
+    const sortedIndices = [...selectedIndices].sort((a, b) => a - b);
+    for (const idx of sortedIndices) {
       const entry = timeline[idx];
       if (!entry) continue;
       const text = extractEntryText(entry);
