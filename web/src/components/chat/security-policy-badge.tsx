@@ -1,5 +1,4 @@
 /** Interactive security policy selector for the chat input area. */
-import { useEffect } from 'react';
 import { ShieldCheck, ShieldAlert } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -53,15 +52,6 @@ export function SecurityPolicyBadge() {
   });
 
   const config = data?.config.data as ConfigSummary | undefined;
-
-  // Sync localStorage autoApprove with server-side policy:
-  // If server policy is not 'never' but autoApprove is true, reset it.
-  useEffect(() => {
-    if (config && autoApprove && config.approvalPolicy !== 'never') {
-      setAutoApprove(false);
-    }
-  }, [config?.approvalPolicy, autoApprove, setAutoApprove, config]);
-
   if (!config) return null;
 
   const currentApproval = describeApproval(config.approvalPolicy);
