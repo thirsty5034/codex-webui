@@ -11,6 +11,10 @@ export function getSocket(): Socket {
     socket = io('/ws', {
       transports: ['websocket'],
       autoConnect: true,
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 30000,
       auth: (callback) => {
         callback({ token: getApiToken() ?? '' });
       },

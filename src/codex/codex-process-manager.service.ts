@@ -29,6 +29,8 @@ export class CodexProcessManager implements OnModuleInit, OnModuleDestroy {
   private restarting = false;
   private destroyed = false;
   private generation = 0;
+  private consecutiveFailures = 0;
+  private static readonly MAX_RESTART_ATTEMPTS = 5;
 
   /** Listeners registered via onNotification/onServerRequest before the client is ready. */
   private readonly eventForwarders: Array<{
@@ -166,6 +168,7 @@ export class CodexProcessManager implements OnModuleInit, OnModuleDestroy {
         capabilities: { experimentalApi: true, requestAttestation: false },
       });
       this.generation += 1;
+      this.consecutiveFailures = 0;
       this.logger.log(
         `Codex app-server initialized (codexHome=${this.initResult.codexHome}, platform=${this.initResult.platformOs})`,
       );
@@ -190,8 +193,20 @@ export class CodexProcessManager implements OnModuleInit, OnModuleDestroy {
 
   private async restart(): Promise<void> {
     if (this.restarting || this.destroyed) return;
+    this.consecutiveFailures++;
+    if (this.consecutiveFailures >= CodexProcessManager.MAX_RESTART_ATTEMPTS) {
+      this.logger.error(
+        `Codex app-server failed ${this.consecutiveFailures} consecutive times — giving up. Restart the WebUI to retry.`,
+      );
+      this.emitLifecycle({
+        type: 'appServerUnavailable',
+        generation: this.generation,
+        message: `Failed after ${this.consecutiveFailures} restart attempts`,
+      });
+      return;
+    }
     this.restarting = true;
-    const delayMs = 3000;
+    const delayMs = Math.min(3000 * this.consecutiveFailures, 30000);
     this.logger.log(`Restarting codex app-server in ${delayMs}ms...`);
     this.emitLifecycle({
       type: 'appServerRestarting',

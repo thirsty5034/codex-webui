@@ -5,6 +5,7 @@ import { RouterProvider } from '@tanstack/react-router';
 import { queryClient } from './lib/query-client';
 import { configureApiClient } from './api-client';
 import { router } from './routes/router';
+import { ErrorBoundary } from './components/error-boundary';
 import { useThemeStore } from './stores/theme-store';
 import './i18n';
 import './index.css';
@@ -17,7 +18,9 @@ document.documentElement.classList.toggle('dark', useThemeStore.getState().dark)
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
+      <ErrorBoundary>
+        <RouterProvider router={router} />
+      </ErrorBoundary>
     </QueryClientProvider>
   </StrictMode>,
 );

@@ -260,6 +260,7 @@ export class PendingApprovalsService implements OnModuleInit {
     try {
       params = JSON.parse(row.paramsJson) as Record<string, unknown>;
     } catch {
+      this.logger.warn(`Failed to parse paramsJson for request ${row.requestId}`);
       params = {};
     }
     return {
