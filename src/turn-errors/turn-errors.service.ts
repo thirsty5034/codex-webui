@@ -58,8 +58,8 @@ export class TurnErrorsService implements OnModuleInit {
     const turnId = params.turnId as string | undefined;
     if (!threadId || !turnId) return;
 
-    const error = params.error as { message?: string } | undefined;
-    const message = error?.message ?? 'Unknown error';
+    const error = params.error as { message?: unknown } | undefined;
+    const message = this.extractErrorMessage(error?.message);
 
     this.upsert(threadId, turnId, message);
   }
@@ -71,14 +71,15 @@ export class TurnErrorsService implements OnModuleInit {
       | {
           id?: string;
           status?: string;
-          error?: { message?: string } | null;
+          error?: { message?: unknown } | null;
         }
       | undefined;
 
     if (!threadId || !turn?.id) return;
     if (turn.status !== 'failed' || !turn.error?.message) return;
 
-    this.upsert(threadId, turn.id, turn.error.message);
+    const message = this.extractErrorMessage(turn.error.message);
+    this.upsert(threadId, turn.id, message);
   }
 
   /** Upserts a turn error — last error for a given turn wins. */
@@ -106,5 +107,31 @@ export class TurnErrorsService implements OnModuleInit {
       message: row.message,
       createdAt: row.createdAt,
     };
+  }
+
+  /**
+   * Extracts a human-readable error message string from various error formats.
+   * Handles: plain strings, Error instances, and nested error objects like
+   * `{ error: { message: "..." } }` which Codex CLI sometimes sends.
+   */
+  private extractErrorMessage(value: unknown): string {
+    if (typeof value === 'string') return value;
+    if (value instanceof Error) return value.message;
+    if (typeof value === 'object' && value !== null) {
+      const obj = value as Record<string, unknown>;
+      // Handle nested { error: { message: "..." } } format
+      if (typeof obj.message === 'string') return obj.message;
+      if (typeof obj.error === 'object' && obj.error !== null) {
+        const nested = obj.error as Record<string, unknown>;
+        if (typeof nested.message === 'string') return nested.message;
+      }
+      // Last resort: stringify the object
+      try {
+        return JSON.stringify(value);
+      } catch {
+        return String(value);
+      }
+    }
+    return 'Unknown error';
   }
 }

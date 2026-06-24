@@ -25,5 +25,5 @@
     }
   },
   "include": ["src"],
-  "exclude": ["src/generated/api"]
+  "exclude": ["src/generated/api", "src/**/__tests__/**"]
 }

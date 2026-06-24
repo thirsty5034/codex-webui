@@ -8,6 +8,7 @@ import type { TimelineEntry, TurnItem, TurnPlanState } from '../types/timeline';
 import type { ApprovalRequest, ResolvableApprovalDecision, UserInputRequest } from '../types/approval';
 import type { ThreadDto, TurnDto, FileUpdateChangeDto } from '../generated/api';
 import type { ThreadTokenUsage, ThreadStatusType } from '../types/codex-notifications';
+import { extractErrorMessage } from '../lib/error-utils';
 
 const DEFAULT_MAX_IDLE_SUBSCRIPTIONS = 30;
 const MIN_MAX_IDLE_SUBSCRIPTIONS = 5;
@@ -860,7 +861,9 @@ export const useTimelineStore = create<TimelineState>((set, get) => {
         );
         const pendingByTurn = new Map<string, { kind: 'system'; content: string; severity: 'error'; turnId: string }>();
         for (const err of errors) {
-          const content = `Error: ${err.message}`;
+          // Safely extract message string from potentially nested object formats
+          const message = extractErrorMessage(err.message);
+          const content = `Error: ${message}`;
           if (!existingErrorKeys.has(`${err.turnId}:${content}`)) {
             pendingByTurn.set(err.turnId, { kind: 'system', content, severity: 'error', turnId: err.turnId });
           }

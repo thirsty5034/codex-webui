@@ -16,6 +16,7 @@ import type { FileUpdateChangeDto, RateLimitSnapshotDto } from '@/generated/api'
 import { useAccountStore } from '@/stores/account-store';
 import { useMcpStore } from '@/stores/mcp-store';
 import { showSnackbar } from '@/stores/snackbar-store';
+import { extractErrorMessage } from '@/lib/error-utils';
 import type { AuthMode, PlanType } from '@/types/account';
 import type { ThreadTokenUsage, ThreadStatusType } from '@/types/codex-notifications';
 import type { McpServerStartupState } from '@/types/mcp';
@@ -311,7 +312,7 @@ const handleItemCompleted: Handler = (params, ctx) => {
 /** turn/completed payload is { threadId, turn: { id, status, error } }. */
 const handleTurnCompleted: Handler = (params, ctx) => {
   const turn = params.turn as
-    | { id?: string; status?: string; error?: { message?: string } | null }
+    | { id?: string; status?: string; error?: { message?: unknown } | null }
     | undefined;
   const turnId = turn?.id;
   if (!turnId) return;
@@ -329,9 +330,9 @@ const handleTurnCompleted: Handler = (params, ctx) => {
   if (
     turn?.status === 'failed' &&
     turn.error?.message &&
-    shouldRecordFinalError(params.threadId as string | undefined, turnId, turn.error.message)
+    shouldRecordFinalError(params.threadId as string | undefined, turnId, extractErrorMessage(turn.error.message))
   ) {
-    ctx.addSystemMessage(`Error: ${turn.error.message}`, 'error', turnId);
+    ctx.addSystemMessage(`Error: ${extractErrorMessage(turn.error.message)}`, 'error', turnId);
   }
 
   void ctx.queryClient.invalidateQueries({ queryKey: threadsListThreadsQueryKey() });
@@ -342,11 +343,11 @@ const handleTurnCompleted: Handler = (params, ctx) => {
 // ---------------------------------------------------------------------------
 
 const handleError: Handler = (params, ctx) => {
-  const error = params.error as { message?: string; additionalDetails?: string } | undefined;
+  const error = params.error as { message?: unknown; additionalDetails?: string } | undefined;
   const willRetry = params.willRetry as boolean;
   const turnId = params.turnId as string | undefined;
   const threadId = params.threadId as string | undefined;
-  const message = error?.message ?? 'Unknown error';
+  const message = extractErrorMessage(error?.message);
 
   if (willRetry) {
     const dedupKey = `${threadId}:${turnId}:${message}`;
