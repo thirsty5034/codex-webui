@@ -23,6 +23,7 @@ import type { McpServerStartupState } from '@/types/mcp';
 import type { TurnItem, TurnPlanState, TurnPlanStepStatus } from '@/types/timeline';
 import type { ApprovalRequest } from '@/types/approval';
 import i18n from '@/i18n';
+import { sendReplyNotification } from '@/hooks/use-notifications';
 
 // ---------------------------------------------------------------------------
 // Context injected by the hook — all store actions + queryClient
@@ -336,6 +337,11 @@ const handleTurnCompleted: Handler = (params, ctx) => {
   }
 
   void ctx.queryClient.invalidateQueries({ queryKey: threadsListThreadsQueryKey() });
+
+  // 通知：AI 回复完成后异步发送通知
+  if (turn?.status !== 'failed') {
+    void sendReplyNotification();
+  }
 };
 
 // ---------------------------------------------------------------------------
