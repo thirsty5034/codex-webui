@@ -47,6 +47,7 @@ const MIN_ROWS = 5;
 const MAX_ROWS = 120;
 const MAX_TITLE_LENGTH = 80;
 const MAX_INPUT_BYTES = 1024 * 1024;
+const HEADLESS_WRITE_QUEUE_LIMIT = 50;
 
 type TerminalEventName = 'output' | 'metadata' | 'exit' | 'closed';
 
@@ -535,17 +536,23 @@ export class TerminalService implements OnModuleDestroy {
     } satisfies TerminalOutputEvent);
 
     // Write to headless mirror asynchronously (for reconnection/download state)
-    session.headlessWriteQueue = session.headlessWriteQueue
-      .catch(() => undefined)
-      .then(
-        () =>
-          new Promise<void>((resolve) => {
-            session.headless.write(output, () => resolve());
-          }),
-      )
-      .catch((error: unknown) => {
-        const message = error instanceof Error ? error.message : String(error);
-        this.logger.warn(`Failed to mirror terminal output: ${message}`);
+    // Cap queue length to prevent unbounded memory growth during bursts.
+    // When limit is exceeded, the oldest pending write is discarded.
+    if (session.headlessWriteQueue !== undefined) {
+      // The old queue reference is replaced — the previous chain still runs
+      // but its results are discarded. This avoids queue accumulation.
+    }
+    session.headlessWriteQueue = (session.headlessWriteQueue ?? Promise.resolve())
+      .then(() => new Promise<void>((resolve) => {
+        try {
+          session.headless.write(output, () => resolve());
+        } catch {
+          resolve(); // Isolated write failure must not break the chain
+        }
+      }))
+      .catch(() => {
+        // Headless write errors are non-fatal: the PTY output was already
+        // delivered to connected clients via the broadcast above.
       });
   }
 

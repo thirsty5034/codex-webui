@@ -104,7 +104,9 @@ export class TerminalGateway
   ): Promise<TerminalAck> {
     try {
       const terminal = await this.terminalService.open(client.id, data);
-      this.logger.debug(`Client ${client.id} opened terminal ${terminal.id}`);
+      const roomId = `terminal:${terminal.id}`;
+      client.join(roomId);
+      this.logger.debug(`Client ${client.id} opened terminal ${terminal.id} (room ${roomId})`);
       return { ok: true, terminal, config: this.terminalService.getConfig() };
     } catch (error) {
       return this.toErrorAck(error);
@@ -123,6 +125,8 @@ export class TerminalGateway
         data.contextKey,
         data.terminalId,
       );
+      const roomId = `terminal:${terminal.id}`;
+      client.join(roomId);
       return {
         ok: true,
         terminal,
@@ -241,13 +245,34 @@ export class TerminalGateway
     }
   }
 
+  /**
+   * Broadcast to all sockets attached to a terminal via Socket.io Room.
+   * More efficient than manual per-socket emit when 2+ recipients exist.
+   *
+   * Each terminal's sockets join room "terminal:{terminalId}" on open/reconnect.
+   */
   private emitToSockets(
     socketIds: string[],
     event: string,
     payload: Record<string, unknown>,
   ): void {
-    for (const socketId of socketIds) {
-      this.server.to(socketId).emit(event, payload);
+    if (socketIds.length === 0) return;
+    if (socketIds.length === 1) {
+      this.server.to(socketIds[0]).emit(event, payload);
+      return;
+    }
+    // Resolve terminalId from payload (may be top-level or nested in terminal object)
+    const tid = typeof payload.terminalId === 'string'
+      ? payload.terminalId
+      : (payload.terminal as Record<string, unknown> | undefined)?.id;
+    const roomId = tid ? `terminal:${tid}` : '';
+    if (roomId) {
+      this.server.to(roomId).emit(event, payload);
+    } else {
+      // Fallback: emit individually if room resolution fails
+      for (const socketId of socketIds) {
+        this.server.to(socketId).emit(event, payload);
+      }
     }
   }
 

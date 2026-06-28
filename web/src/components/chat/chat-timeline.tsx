@@ -57,7 +57,7 @@ function computeRollbackTurns(timeline: TimelineEntry[], userIndex: number): num
 }
 
 /** Returns true if the scroll container is near the bottom. */
-function isNearBottom(el: HTMLElement, threshold = 120): boolean {
+function isNearBottom(el: HTMLElement, threshold = 60): boolean {
   return el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
 }
 
@@ -207,38 +207,19 @@ export function ChatTimeline({ onEditMessage }: Props) {
       return () => { ro.disconnect(); };
     },
   });
-  // Track scrollTop via property setter override (captures ALL changes)
+  // Track scroll position via onScroll callback (no intrusive property override)
   const lastScrollTopRef = useRef<number | null>(null);
-  const applyScrollTopSetter = (el: HTMLElement | null) => {
-    if (!el) return;
-    // Skip if already has own descriptor (already overridden)
-    if (Object.getOwnPropertyDescriptor(el, 'scrollTop')) return;
-    // Find scrollTop descriptor on prototype chain
-    const descriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'scrollTop')
-      ?? Object.getOwnPropertyDescriptor(Element.prototype, 'scrollTop');
-    if (!descriptor?.set) return;
-    Object.defineProperty(el, 'scrollTop', {
-      get() { return descriptor.get!.call(this); },
-      set(v: number) {
-        descriptor.set!.call(this, v);
-        if (!panelTransitionRef.current) {
-          lastScrollTopRef.current = v;
-        }
-      },
-      configurable: true,
-    });
-  };
 
   const handleScroll = useCallback(() => {
     const el = scrollRef.current;
-    if (el && !panelTransitionRef.current) {
-      const nearBottom = isNearBottom(el);
-      shouldAutoScroll.current = nearBottom;
-      setShowScrollBottom(prev => {
-        const show = !nearBottom;
-        return prev === show ? prev : show;
-      });
-    }
+    if (!el || panelTransitionRef.current) return;
+    lastScrollTopRef.current = el.scrollTop;
+    const nearBottom = isNearBottom(el);
+    shouldAutoScroll.current = nearBottom;
+    setShowScrollBottom(prev => {
+      const show = !nearBottom;
+      return prev === show ? prev : show;
+    });
   }, []);
 
   // Cleanup pending animation frames
@@ -310,7 +291,7 @@ export function ChatTimeline({ onEditMessage }: Props) {
   return (
     <>
       <div
-        ref={(el) => { if (el) { (scrollRef as React.MutableRefObject<HTMLElement | null>).current = el; applyScrollTopSetter(el); } }}
+        ref={(el) => { if (el) { (scrollRef as React.MutableRefObject<HTMLElement | null>).current = el; } }}
         onScroll={handleScroll}
         className="relative min-h-0 flex-1 overflow-y-auto"
       >

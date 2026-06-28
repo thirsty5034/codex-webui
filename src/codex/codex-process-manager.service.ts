@@ -169,6 +169,8 @@ export class CodexProcessManager implements OnModuleInit, OnModuleDestroy {
       });
       this.generation += 1;
       this.consecutiveFailures = 0;
+      // Drain any requests queued while the circuit was open
+      currentClient.drainRetryQueue();
       this.logger.log(
         `Codex app-server initialized (codexHome=${this.initResult.codexHome}, platform=${this.initResult.platformOs})`,
       );

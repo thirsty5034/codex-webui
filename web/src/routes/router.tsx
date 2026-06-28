@@ -1,7 +1,11 @@
 /**
  * TanStack Router configuration with code-based route tree.
  * Auth guard on the root layout redirects unauthenticated users to /login.
+ *
+ * PERFORMANCE: Heavy route components are lazy-loaded via React.lazy()
+ * so they are not included in the initial bundle.
  */
+import React, { Suspense } from 'react';
 import {
   createRouter,
   createRoute,
@@ -9,16 +13,29 @@ import {
   redirect,
   Outlet,
 } from '@tanstack/react-router';
+import { Loader2 } from 'lucide-react';
 import { getApiToken } from '@/auth-token';
 import { LoginRoute } from './login-route';
 import { AuthenticatedLayout } from './authenticated-layout';
 import { ChatView } from './chat-view';
 import { ThreadView } from './thread-view';
-import { FilesRoute } from './files-route';
-import { TerminalRoute } from './terminal-route';
-import { DiagnosticsRoute } from './diagnostics-route';
 import { SettingsPage } from '@/components/settings/settings-page';
 import { IntegrationsPage } from '@/components/integrations/integrations-page';
+
+// ── Lazy-loaded route components (heavy deps: Monaco, xterm, etc.) ──
+// These are split into separate chunks and loaded only when the route is visited.
+const FilesRoute = React.lazy(() => import('./files-route').then(m => ({ default: m.FilesRoute })));
+const TerminalRoute = React.lazy(() => import('./terminal-route').then(m => ({ default: m.TerminalRoute })));
+const DiagnosticsRoute = React.lazy(() => import('./diagnostics-route').then(m => ({ default: m.DiagnosticsRoute })));
+
+/** Suspense fallback shown while lazy route chunks load. */
+function RouteFallback() {
+  return (
+    <div className="flex min-h-0 flex-1 items-center justify-center">
+      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+    </div>
+  );
+}
 
 export type LoginSearch = { redirect: string };
 export type IntegrationsSearch = { tab: 'plugins' | 'apps' | 'mcps' };
@@ -95,21 +112,33 @@ export const threadRoute = createRoute({
 const filesRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/files',
-  component: FilesRoute,
+  component: () => (
+    <Suspense fallback={<RouteFallback />}>
+      <FilesRoute />
+    </Suspense>
+  ),
 });
 
 /** Global terminal view. */
 const terminalRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/terminal',
-  component: TerminalRoute,
+  component: () => (
+    <Suspense fallback={<RouteFallback />}>
+      <TerminalRoute />
+    </Suspense>
+  ),
 });
 
 /** Diagnostics panel. */
 const diagnosticsRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/diagnostics',
-  component: DiagnosticsRoute,
+  component: () => (
+    <Suspense fallback={<RouteFallback />}>
+      <DiagnosticsRoute />
+    </Suspense>
+  ),
 });
 
 /** Settings page. */

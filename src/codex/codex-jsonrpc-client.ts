@@ -1,6 +1,10 @@
 /**
  * JSON-RPC client for communicating with codex app-server over stdio.
  * Handles request/response correlation, server-initiated requests, and notifications.
+ *
+ * PERFORMANCE: Differentiated request timeouts let fast queries (model/list) fail
+ * quickly while long operations (thread/start) have room to complete. The circuit
+ * breaker prevents needless 30s waits when the server is known to be down.
  */
 import { Logger } from '@nestjs/common';
 import { ChildProcess } from 'node:child_process';
@@ -55,6 +59,29 @@ export interface CodexJsonRpcClientEvents {
 }
 
 const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
+
+// ── Differentiated timeouts per method ────────────────────────────
+// Fast queries (model/list) fail quickly; long operations (thread/start) get more time.
+const METHOD_TIMEOUTS: Record<string, number> = {
+  'initialize': 60_000,
+  'model/list': 5_000,
+  'thread/list': 5_000,
+  'fuzzyFileSearch/start': 5_000,
+  'thread/start': 120_000,
+  'thread/resume': 120_000,
+  'approval/accept': 10_000,
+  'approval/decline': 10_000,
+  'userInput/submit': 10_000,
+  'thread/interrupt': 5_000,
+};
+
+/** Methods considered idempotent / read-only — safe to retry after reconnect. */
+const RETRYABLE_METHODS = new Set([
+  'model/list',
+  'thread/list',
+  'thread/status',
+  'fuzzyFileSearch/start',
+]);
 const LOG_DIR = join(globalThis.process.cwd(), 'logs');
 
 function createJsonlStream(): WriteStream {
@@ -72,6 +99,17 @@ export class CodexJsonRpcClient extends EventEmitter<CodexJsonRpcClientEvents> {
   private closed = false;
   private readonly jsonlStream: WriteStream;
 
+  // ── Circuit breaker state ────────────────────────────────────────
+  /** True when the underlying process has exited and restart is pending. */
+  private circuitOpen = false;
+  /** Queue of retryable requests accumulated while the circuit was open. */
+  private readonly retryQueue: Array<{
+    method: string;
+    params?: unknown;
+    resolve: (value: unknown) => void;
+    reject: (err: Error) => void;
+  }> = [];
+
   constructor(
     private readonly process: ChildProcess,
     private readonly requestTimeoutMs = DEFAULT_REQUEST_TIMEOUT_MS,
@@ -79,6 +117,40 @@ export class CodexJsonRpcClient extends EventEmitter<CodexJsonRpcClientEvents> {
     super();
     this.jsonlStream = createJsonlStream();
     this.setupStdio();
+  }
+
+  /** Resolves the timeout for a given method, falling back to default. */
+  private getTimeout(method: string): number {
+    return METHOD_TIMEOUTS[method] ?? this.requestTimeoutMs;
+  }
+
+  /**
+   * Called by CodexProcessManager after a successful reconnect to drain
+   * any requests that were queued while the circuit was open.
+   */
+  drainRetryQueue(): void {
+    this.circuitOpen = false;
+    const queue = this.retryQueue.splice(0);
+    for (const item of queue) {
+      this.request(item.method, item.params)
+        .then(item.resolve)
+        .catch((err: Error) => item.reject(err));
+    }
+  }
+
+  /**
+   * Opens the circuit breaker (called when process exits).
+   * New requests to retryable methods will be queued rather than failing.
+   */
+  openCircuit(): void {
+    this.circuitOpen = true;
+  }
+
+  /**
+   * Returns true if there are queued retryable requests awaiting replay.
+   */
+  hasQueuedRequests(): boolean {
+    return this.retryQueue.length > 0;
   }
 
   /**
@@ -112,14 +184,28 @@ export class CodexJsonRpcClient extends EventEmitter<CodexJsonRpcClientEvents> {
       throw new Error('Client is closed');
     }
 
+    // Circuit breaker: fast-fail when server is known to be down
+    if (this.circuitOpen) {
+      if (RETRYABLE_METHODS.has(method)) {
+        // Queue for later replay after reconnect
+        return new Promise<T>((resolve, reject) => {
+          this.retryQueue.push({ method, params, resolve, reject });
+        });
+      }
+      throw new Error(
+        `Server unavailable (circuit open). Cannot execute ${method}.`,
+      );
+    }
+
     const id = this.nextId++;
     const message: JsonRpcRequest = { method, id, params };
+    const effectiveTimeout = timeoutMs ?? this.getTimeout(method);
 
     return new Promise<T>((resolve, reject) => {
       const timer = setTimeout(() => {
         this.pending.delete(id);
-        reject(new Error(`Request ${method} (id=${id}) timed out`));
-      }, timeoutMs ?? this.requestTimeoutMs);
+        reject(new Error(`Request ${method} (id=${id}) timed out after ${effectiveTimeout}ms`));
+      }, effectiveTimeout);
 
       this.pending.set(id, {
         resolve: resolve,
@@ -186,6 +272,7 @@ export class CodexJsonRpcClient extends EventEmitter<CodexJsonRpcClientEvents> {
       pending.reject(new Error('Client destroyed'));
     }
     this.pending.clear();
+    this.retryQueue.splice(0);
     this.jsonlStream.end();
     this.process.kill();
   }
@@ -216,6 +303,7 @@ export class CodexJsonRpcClient extends EventEmitter<CodexJsonRpcClientEvents> {
 
     this.process.on('close', (code, signal) => {
       this.closed = true;
+      this.circuitOpen = true;
       for (const [, pending] of this.pending) {
         clearTimeout(pending.timer);
         pending.reject(
