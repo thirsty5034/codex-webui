@@ -42,6 +42,7 @@ export function ThreadView() {
   const [sessionPanelOpen, setSessionPanelOpen] = useState(false);
 
   const threadCwd = useTimelineStore((s) => s.threadCwd);
+  const selectThread = useTimelineStore((s) => s.selectThread);
   const setReadOnlyThread = useTimelineStore((s) => s.setReadOnlyThread);
   const batchHydrateThread = useTimelineStore((s) => s.batchHydrateThread);
   const hydrateTokenUsageForThread = useTimelineStore((s) => s.hydrateTokenUsageForThread);
@@ -74,13 +75,11 @@ export function ThreadView() {
     onSuccess: (res) => {
       const tid = res.thread.id;
       const activeTurn = res.thread.turns.find((t: { status?: string }) => t.status === 'inProgress');
-      // Defer Zustand store update to next animation frame via requestAnimationFrame.
+      // Defer both selectThread and batchHydrateThread to next animation frame.
       // This breaks React 19's synchronous useSyncExternalStore commit-phase chain
-      // that causes nestedUpdateCount > 50 (Error #185). Without this deferral,
-      // TanStack Query's onSuccess (called during its internal state commit) triggers
-      // Zustand set() → useSyncExternalStore detects change → React 19 synchronously
-      // re-renders → more store changes → nestedUpdateCount loop.
+      // that causes nestedUpdateCount > 50 (Error #185).
       requestAnimationFrame(() => {
+        selectThread(tid);
         batchHydrateThread(tid, {
           title: threadLabel(res.thread),
           turns: res.thread.turns,
@@ -143,7 +142,12 @@ export function ThreadView() {
   // hydration async via requestAnimationFrame.
   useEffect(() => {
     if (!threadId) return;
-    resumeThread.mutate({ path: { threadId } });
+    // Only fire mutation if thread isn't already hydrated (avoid duplicate
+    // mutations when sidebar's openLiveThread already triggered it).
+    const existing = useTimelineStore.getState().threadsById[threadId];
+    if (!existing?.hydrated) {
+      resumeThread.mutate({ path: { threadId } });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [threadId]);
 
