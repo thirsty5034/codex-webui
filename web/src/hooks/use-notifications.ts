@@ -10,11 +10,26 @@ import { useCallback, useState } from 'react';
 import { settingsListSettings } from '@/generated/api/sdk.gen';
 import { useTimelineStore } from '@/stores/timeline-store';
 
+// ── Lazy singleton AudioContext ──────────────────────────────────────
+
+let _audioCtx: AudioContext | null = null;
+
+function getAudioContext(): AudioContext {
+  if (!_audioCtx) {
+    _audioCtx = new AudioContext();
+  }
+  if (_audioCtx.state === 'suspended') {
+    void _audioCtx.resume();
+  }
+  return _audioCtx;
+}
+
 // ── Web Audio API dual-tone notification sound ────────────────────────
+
 
 function playNotificationSound(): void {
   try {
-    const ctx = new AudioContext();
+    const ctx = getAudioContext();
     const gain = ctx.createGain();
     gain.connect(ctx.destination);
     gain.gain.setValueAtTime(0.3, ctx.currentTime);
@@ -127,8 +142,8 @@ export async function sendReplyNotification(): Promise<void> {
     if (soundEnabled) {
       playNotificationSound();
     }
-  } catch {
-    // Settings fetch failed — silently ignore
+  } catch (err) {
+    console.warn('[notifications] sendReplyNotification failed:', err);
   }
 }
 
