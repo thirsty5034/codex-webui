@@ -170,7 +170,7 @@ export function ThreadView() {
         <ResizablePanelGroup orientation="vertical" className="min-h-0 flex-1">
           <ResizablePanel defaultSize="65%" minSize="20%">
             <div className="flex h-full flex-col">
-              <ChatTimeline onEditMessage={(v) => chatInputRef.current?.setInput(v)} />
+              <ChatTimeline key={threadId} onEditMessage={(v) => chatInputRef.current?.setInput(v)} />
             </div>
           </ResizablePanel>
           <ResizableHandle withHandle />
@@ -181,7 +181,7 @@ export function ThreadView() {
           </ResizablePanel>
         </ResizablePanelGroup>
       ) : (
-        <ChatTimeline onEditMessage={(v) => chatInputRef.current?.setInput(v)} />
+        <ChatTimeline key={threadId} onEditMessage={(v) => chatInputRef.current?.setInput(v)} />
       )}
 
       {/* Mobile/Tablet: session panel as bottom Sheet */}
