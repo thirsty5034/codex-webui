@@ -54,6 +54,7 @@ export function formatSettingValue(value: SettingValue): string {
 export function sectionLabel(section: string): string {
   const labels: Record<string, string> = {
     general: 'General',
+    notifications: 'Notifications',
     account: 'Account',
     codex: 'Codex',
     terminal: 'Terminal',

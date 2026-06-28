@@ -183,7 +183,7 @@ export type SettingDto = {
     };
     source: 'db' | 'env' | 'default';
     type: 'string' | 'number' | 'boolean' | 'json';
-    category: 'terminal' | 'files' | 'security' | 'general';
+    category: 'terminal' | 'files' | 'security' | 'general' | 'notifications';
     description: string;
     /**
      * Hardcoded default value
