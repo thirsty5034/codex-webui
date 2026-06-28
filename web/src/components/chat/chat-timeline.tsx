@@ -277,6 +277,13 @@ export function ChatTimeline({ onEditMessage }: Props) {
     if (timeline.length > 0 && lastRenderedThreadRef.current !== threadId) {
       lastRenderedThreadRef.current = threadId;
       shouldAutoScroll.current = true;
+      // Cancel pending streaming scroll RAF to prevent race condition
+      if (scrollFrameRef.current !== null) {
+        cancelAnimationFrame(scrollFrameRef.current);
+        scrollFrameRef.current = null;
+      }
+      // Reset prevCount so Effect A's RAF callback sees no appended entries
+      prevCountRef.current = timeline.length;
       virtualizer.scrollToIndex(timeline.length - 1, {
         align: 'end',
         behavior: 'auto',

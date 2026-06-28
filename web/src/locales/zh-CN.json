@@ -600,5 +600,18 @@
   "Deselect": "取消选择",
   "{{count}} selected": "已选择 {{count}} 条",
   "Select all": "全选",
-  "Automatically accept all approval requests.": "自动接受所有审批请求。"
+  "Automatically accept all approval requests.": "自动接受所有审批请求。",
+  "Notifications": "通知",
+  "Receive notifications when AI replies are complete. Notifications are sent for all threads, regardless of which one you are currently viewing.": "AI 回复完成时接收通知。通知会针对所有对话发送，无论您当前正在查看哪个对话。",
+  "Notification Settings": "通知设置",
+  "Browser Notification Permission": "浏览器通知权限",
+  "Permission granted": "已授权",
+  "Permission denied": "已拒绝",
+  "Permission not requested yet": "尚未请求权限",
+  "Request permission": "请求权限",
+  "Bark Configuration": "Bark 推送配置",
+  "Send a test notification": "发送测试通知",
+  "Test": "测试",
+  "Test notification sent": "测试通知已发送",
+  "Failed to send test notification": "测试通知发送失败"
 }
