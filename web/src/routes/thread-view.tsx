@@ -42,13 +42,11 @@ export function ThreadView() {
   const [sessionPanelOpen, setSessionPanelOpen] = useState(false);
 
   const threadCwd = useTimelineStore((s) => s.threadCwd);
-  const setActiveThread = useTimelineStore((s) => s.setActiveThread);
   const setReadOnlyThread = useTimelineStore((s) => s.setReadOnlyThread);
   const batchHydrateThread = useTimelineStore((s) => s.batchHydrateThread);
   const hydrateTokenUsageForThread = useTimelineStore((s) => s.hydrateTokenUsageForThread);
   const hydrateTurnDiffsForThread = useTimelineStore((s) => s.hydrateTurnDiffsForThread);
   const hydrateTurnErrorsForThread = useTimelineStore((s) => s.hydrateTurnErrorsForThread);
-  const setLoadingForThread = useTimelineStore((s) => s.setLoadingForThread);
 
   // Pending file open request from @mention click or image badge click.
   // Uses { path, seq } so re-clicking the same file still triggers a new open.
@@ -104,7 +102,7 @@ export function ThreadView() {
     },
     onError: (_err, vars) => {
       const failedId = vars.path.threadId;
-      setLoadingForThread(failedId, false);
+      useTimelineStore.getState().setLoadingForThread(failedId, false);
       // Only attempt archived read if this thread is still selected.
       if (useTimelineStore.getState().threadId === failedId) {
         void tryReadArchived(failedId);
@@ -140,10 +138,11 @@ export function ThreadView() {
     }
   };
 
-  // Load or select thread when URL param changes. Backend ensures resume is deduped.
+  // Minimal mount: skip synchronous store mutations to prevent React 19
+  // useSyncExternalStore cascading (Error #185). onSuccess handles all
+  // hydration async via requestAnimationFrame.
   useEffect(() => {
-    setActiveThread(threadId);
-    setLoadingForThread(threadId, true);
+    if (!threadId) return;
     resumeThread.mutate({ path: { threadId } });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [threadId]);

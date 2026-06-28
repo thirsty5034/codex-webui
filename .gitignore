@@ -68,3 +68,6 @@ docs/
 src/public/
 AGENTS.md
 database.db
+
+# 隔离测试环境数据
+.root.codex-test/
