@@ -1,7 +1,7 @@
 # 通知功能 & 点击对话自动滚动设计文档
 
 > 日期：2026-06-28
-> 状态：草稿
+> 状态：草稿（V2 — 融合方案）
 
 ---
 
@@ -9,8 +9,8 @@
 
 本次新增两个功能：
 
-1. **通知功能**：AI 回复完成后，通过浏览器 Notification API 或 Bark 推送向用户发送带声音的通知。用户可在设置中分别控制通知开关和通知方式。
-2. **点击对话自动滚动到底部**：用户从侧边栏点击一个对话时，自动滚动到该对话时间线的最底部。
+1. **通知功能**：AI 回复完成后，通过浏览器 Notification API 和/或 Bark 推送向用户发送带声音的通知。用户可在设置中分别控制通知开关、通知方式以及声音开关。
+2. **点击对话自动滚动到底部**：用户从侧边栏点击一个对话时，自动滚动到该对话时间线的最底部（切换对话用 `auto` 直接跳转，同对话新消息用 `smooth` 平滑滚动）。
 
 ---
 
@@ -18,9 +18,9 @@
 
 ### 2.1 触发时机
 
-- **主要触发**：当 Codex CLI 发出 `turn/completed` 事件且当前对话处于活跃状态（即 `ctx.threadId === eventThreadId`）时触发。
+- **主要触发**：当 Codex CLI 发出 `turn/completed` 事件时触发，**不区分当前活跃对话**——用户可能只是挂着页面但人已离开屏幕，因此任何对话完成都应通知。
 - **排除场景**：仅当 turn 成功完成（`status !== 'failed'`）时触发。错误场景已有 Snackbar 提示，不再重复通知。
-- **去重**：使用现有 `finalErrorEntries` 机制避免重复通知。
+- **去重**：短时间内相同的错误已完成通知不再重复发送。
 
 ### 2.2 通知方式
 
@@ -30,16 +30,16 @@
 - 需要先请求权限：`Notification.requestPermission()`
 - 通知内容：
   - **标题**："Codex WebUI"
-  - **正文**：当前对话的主题（thread title）或回复摘要（第一条 agentMessage 的前 80 个字符）
+  - **正文**：对话标题（thread title），若无则使用通用文案 "AI 回复已完成"
   - **图标**：使用站点 favicon
-  - **声音**：通过 `new Audio()` 播放一段提示音（使用 Base64 编码的短音频或系统默认通知声）
-- 点击通知窗口聚焦页面（`window.focus()`）
+  - **声音**：使用 **Web Audio API** 生成双音调提示音（`OscillatorNode`），无需额外音频文件
+- 点击通知窗口聚焦页面（`window.focus()`）并关闭通知
 
 #### 2.2.2 Bark 通知
 
-- 使用 Bark 推送 API：`POST <bark_server>/<bark_key>/<title>/<body>`
+- 使用 Bark 推送 API：`GET <bark_url>/<bark_key>/<title>/<body>?sound=<sound>`
 - Bark 服务器地址和设备密钥由用户在设置中配置
-- 支持自定义声音（通过 Bark URL 参数 `?sound=xxx`）
+- 支持自定义提示音（通过 `sound` 参数）
 - 通知内容同浏览器通知
 
 ### 2.3 设置项
@@ -48,80 +48,230 @@
 
 | 设置键 | 类型 | 默认值 | 说明 |
 |---|---|---|---|
-| `notifications.enabled` | boolean | `true` | 全局通知开关 |
-| `notifications.method` | string (`"browser"` / `"bark"`) | `"browser"` | 通知方式选择 |
-| `notifications.barkServer` | string | `""` | Bark 服务器地址（如 `https://api.day.app`） |
+| `notifications.enabled` | boolean | `true` | 全局通知总开关 |
+| `notifications.type` | string（`browser` / `bark` / `both` / `none`） | `"browser"` | 通知方式：浏览器通知、Bark 推送、两者同时、静默 |
+| `notifications.barkUrl` | string | `""` | Bark 服务器地址（如 `https://api.day.app`） |
 | `notifications.barkKey` | string | `""` | Bark 设备密钥 |
 | `notifications.barkSound` | string | `"default"` | Bark 推送提示音 |
 | `notifications.soundEnabled` | boolean | `true` | 通知是否带声音 |
 
-### 2.4 前端实现
+> `type: "none"` 等效于关闭，但保留 `enabled` 总开关以便快速切换。
 
-#### 2.4.1 新增模块
+### 2.4 实现架构
 
 ```
-web/src/
-  hooks/
-    use-notification-permission.ts   # 浏览器通知权限管理 hook
-  lib/
-    notification-service.ts          # 通知发送服务（封装浏览器通知 + Bark）
-  components/
-    settings/
-      notification-settings.tsx      # 通知设置页面组件
-  stores/
-    notification-store.ts            # (可选) 通知状态管理，与后端 runtime settings 对接
+┌─────────────────────────────────────────────────────────────┐
+│                  后端 (NestJS)                                │
+│  src/settings/settings.definitions.ts                       │
+│  └─ SETTING_CATEGORIES 新增 'notifications'                 │
+│  └─ SETTINGS_DEFINITIONS 新增 6 条定义                       │
+│  └─ settings.service.ts 自动 reconcile（无需人工干预）       │
+├─────────────────────────────────────────────────────────────┤
+│                  前端 (React)                                 │
+│  use-notifications.ts          ← 通知核心 hook（新建）       │
+│    ├─ 请求浏览器 Notification 权限                           │
+│    ├─ sendReplyNotification() 发送逻辑                       │
+│    ├─ Web Audio API 双音调提示音                             │
+│    └─ Bark fetch 封装                                        │
+│                                                              │
+│  notification-settings.tsx     ← 设置页 UI 组件（新建）      │
+│    ├─ 使用 useCategorySettings('notifications')              │
+│    ├─ 权限请求按钮 + 权限状态显示                            │
+│    ├─ 通知方式选择、Bark 配置、声音开关                      │
+│    └─ "发送测试通知"按钮                                     │
+│                                                              │
+│  notification-handlers.ts      ← 集成点（修改）              │
+│    └─ handleTurnCompleted 中调用 sendReplyNotification()     │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-#### 2.4.2 核心逻辑
+### 2.5 后端变更
 
-**`notification-service.ts`**：
+#### 2.5.1 新增分类
+
+在 `src/settings/settings.definitions.ts` 中：
 
 ```typescript
-interface NotifyParams {
-  title: string;
-  body: string;
-  soundEnabled: boolean;
-  method: 'browser' | 'bark';
-  barkServer?: string;
-  barkKey?: string;
-  barkSound?: string;
-}
+export const SETTING_CATEGORIES = [
+  'terminal',
+  'files',
+  'security',
+  'general',
+  'notifications',   // ← 新增
+] as const;
+```
 
-export async function sendNotification(params: NotifyParams): Promise<void> {
-  if (params.method === 'browser') {
-    await sendBrowserNotification(params);
-  } else if (params.method === 'bark') {
-    await sendBarkNotification(params);
+#### 2.5.2 新增设置键常量
+
+```typescript
+export const NOTIFICATIONS_SETTING_KEYS = {
+  enabled: 'notifications.enabled',
+  type: 'notifications.type',
+  barkUrl: 'notifications.barkUrl',
+  barkKey: 'notifications.barkKey',
+  barkSound: 'notifications.barkSound',
+  soundEnabled: 'notifications.soundEnabled',
+} as const;
+```
+
+#### 2.5.3 新增设置定义
+
+```typescript
+{
+  key: NOTIFICATIONS_SETTING_KEYS.enabled,
+  type: 'boolean',
+  category: 'notifications',
+  description: 'Enable or disable all notifications globally.',
+  defaultValue: true,
+},
+{
+  key: NOTIFICATIONS_SETTING_KEYS.type,
+  type: 'string',
+  category: 'notifications',
+  description: 'Notification delivery method: browser, bark, both, or none.',
+  defaultValue: 'browser',
+  constraints: {
+    enum: ['browser', 'bark', 'both', 'none'],
+  },
+},
+{
+  key: NOTIFICATIONS_SETTING_KEYS.barkUrl,
+  type: 'string',
+  category: 'notifications',
+  description: 'Bark server base URL (e.g. https://api.day.app).',
+  defaultValue: '',
+},
+{
+  key: NOTIFICATIONS_SETTING_KEYS.barkKey,
+  type: 'string',
+  category: 'notifications',
+  description: 'Bark device key.',
+  defaultValue: '',
+},
+{
+  key: NOTIFICATIONS_SETTING_KEYS.barkSound,
+  type: 'string',
+  category: 'notifications',
+  description: 'Bark notification sound name (e.g. default, alarm, birdsong, bell).',
+  defaultValue: 'default',
+},
+{
+  key: NOTIFICATIONS_SETTING_KEYS.soundEnabled,
+  type: 'boolean',
+  category: 'notifications',
+  description: 'Play a sound when a notification is delivered.',
+  defaultValue: true,
+},
+```
+
+> 启动时 settings service 的 reconcile 逻辑会自动 INSERT 新设置行，不会覆盖用户已有值。
+
+### 2.6 前端实现
+
+#### 2.6.1 通知核心 Hook：`web/src/hooks/use-notifications.ts`
+
+```typescript
+import { useCallback, useState } from 'react';
+import { settingsListSettings } from '@/generated/api/sdk.gen';
+
+// ── Web Audio API 双音调提示音 ──────────────────────────────
+function playNotificationSound() {
+  try {
+    const ctx = new AudioContext();
+    const gain = ctx.createGain();
+    gain.connect(ctx.destination);
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+
+    // 第一音：A5 (880 Hz)
+    const osc1 = ctx.createOscillator();
+    osc1.frequency.value = 880;
+    osc1.type = 'sine';
+    osc1.connect(gain);
+    osc1.start(ctx.currentTime);
+    osc1.stop(ctx.currentTime + 0.15);
+
+    // 第二音：A6 (1760 Hz)，间隔 0.15s
+    const osc2 = ctx.createOscillator();
+    osc2.frequency.value = 1760;
+    osc2.type = 'sine';
+    osc2.connect(gain);
+    osc2.start(ctx.currentTime + 0.15);
+    osc2.stop(ctx.currentTime + 0.3);
+  } catch {
+    // Web Audio API 不可用时静默失败
   }
 }
 
-async function sendBrowserNotification(params: NotifyParams) {
+// ── 浏览器通知 ────────────────────────────────────────────────
+function sendBrowserNotification(title: string, body: string): void {
   if (Notification.permission !== 'granted') return;
-  const n = new Notification(params.title, {
-    body: params.body,
-    icon: '/favicon.ico',
-    tag: 'codex-webui',
-  });
+  const n = new Notification(title, { body, icon: '/favicon.ico', tag: 'codex-webui' });
   n.onclick = () => { window.focus(); n.close(); };
-  if (params.soundEnabled) {
-    playNotificationSound();
+}
+
+// ── Bark 通知 ─────────────────────────────────────────────────
+async function sendBarkNotification(
+  barkUrl: string,
+  barkKey: string,
+  title: string,
+  body: string,
+  sound?: string,
+): Promise<void> {
+  const url = `${barkUrl}/${barkKey}/${encodeURIComponent(title)}/${encodeURIComponent(body)}`;
+  const params = new URLSearchParams();
+  if (sound && sound !== 'default') params.set('sound', sound);
+  await fetch(`${url}?${params.toString()}`, { method: 'GET', mode: 'no-cors' });
+}
+
+// ── 通知发送入口 ──────────────────────────────────────────────
+export async function sendReplyNotification(): Promise<void> {
+  try {
+    const { data } = await settingsListSettings({
+      query: { category: 'notifications' },
+      throwOnError: true,
+    });
+    const settings = Object.fromEntries(
+      data.settings.map((s) => [s.key, s.value]),
+    );
+
+    if (settings['notifications.enabled'] === false) return;
+
+    const type = settings['notifications.type'] as string;
+    if (type === 'none') return;
+
+    const title = 'Codex WebUI';
+    const body = (settings['_threadTitle'] as string) || 'AI 回复已完成';
+    const soundEnabled = settings['notifications.soundEnabled'] !== false;
+
+    const doBrowser = type === 'browser' || type === 'both';
+    const doBark = type === 'bark' || type === 'both';
+
+    if (doBrowser) {
+      sendBrowserNotification(title, body);
+    }
+    if (doBark) {
+      const barkUrl = settings['notifications.barkUrl'] as string;
+      const barkKey = settings['notifications.barkKey'] as string;
+      if (barkUrl && barkKey) {
+        void sendBarkNotification(
+          barkUrl,
+          barkKey,
+          title,
+          body,
+          soundEnabled ? (settings['notifications.barkSound'] as string) : undefined,
+        );
+      }
+    }
+    if (soundEnabled) {
+      playNotificationSound();
+    }
+  } catch {
+    // 通知失败静默处理
   }
 }
 
-async function sendBarkNotification(params: NotifyParams) {
-  if (!params.barkServer || !params.barkKey) return;
-  const url = `${params.barkServer}/${params.barkKey}/${encodeURIComponent(params.title)}/${encodeURIComponent(params.body)}`;
-  const query = new URLSearchParams();
-  if (params.soundEnabled && params.barkSound) {
-    query.set('sound', params.barkSound);
-  }
-  await fetch(`${url}?${query.toString()}`, { method: 'GET' });
-}
-```
-
-**`use-notification-permission.ts`**：
-
-```typescript
+// ── 浏览器通知权限 Hook ───────────────────────────────────────
 export function useNotificationPermission() {
   const [permission, setPermission] = useState<NotificationPermission>(
     () => Notification.permission,
@@ -137,76 +287,91 @@ export function useNotificationPermission() {
 }
 ```
 
-#### 2.4.3 集成到现有通知系统
+#### 2.6.2 集成到 `notification-handlers.ts`
 
-修改 `web/src/hooks/notification-handlers.ts` 中的 `handleTurnCompleted`：
+修改 `handleTurnCompleted`，在现有逻辑末尾增加通知调用：
 
 ```typescript
 const handleTurnCompleted: Handler = (params, ctx) => {
-  // ... 现有逻辑 ...
+  // ... 现有逻辑（更新 timeline、清理状态等）保持不变 ...
 
-  // 新增：发送用户通知
-  const turn = params.turn as { id?: string; status?: string; error?: unknown } | undefined;
-  if (turn?.status !== 'failed' && ctx.threadId === params.threadId) {
-    // 读取设置并发送通知（异步，不阻塞）
-    void sendReplyNotification(ctx.threadId, params.threadId as string);
+  // 新增：异步发送通知（不阻塞主流程）
+  if (turn?.status !== 'failed') {
+    void sendReplyNotification();
   }
 };
 ```
 
-新增 `sendReplyNotification` 函数：
+需要在文件顶部导入 `sendReplyNotification`。
+
+> **为什么不传递 threadTitle？** 通知 hook 内部通过 `settingsListSettings` 读取设置，`threadTitle` 可以通过读取 `useTimelineStore` 当前活跃线程获取，或在通知调用前注入。更简单的做法：`handleTurnCompleted` 中可以读取当前 thread title 后注入。但为了保持 handler 简洁，可在 `sendReplyNotification` 内部直接从 store 读取：
 
 ```typescript
-async function sendReplyNotification(
-  currentThreadId: string | null,
-  eventThreadId: string,
-) {
-  // 只在当前活跃对话触发通知
-  if (currentThreadId !== eventThreadId) return;
+const threadId = useTimelineStore.getState().threadId;
+const threadTitle = threadId
+  ? useTimelineStore.getState().threadsById[threadId]?.threadTitle
+  : null;
+```
 
-  try {
-    const { data } = await settingsListSettings({ query: { category: 'notifications' } });
-    const settings = Object.fromEntries(
-      data?.settings.map(s => [s.key, s.value]) ?? []
-    );
+#### 2.6.3 设置页面组件：`web/src/components/settings/notification-settings.tsx`
 
-    if (settings['notifications.enabled'] === false) return;
+- 使用 `useCategorySettings('notifications')` 管理设置
+- 使用 `useNotificationPermission()` 管理浏览器通知权限
+- UI 布局：
+  - **全局开关**：Toggle（`notifications.enabled`）
+  - **通知方式**：Select（`browser` / `bark` / `both` / `none`）
+  - **浏览器通知权限**：显示当前权限状态 + "请求权限"按钮（仅当 `permission !== 'granted'` 时显示）
+  - **Bark 配置**（展开/折叠）：Bark 服务器地址 Input + 设备密钥 Input（密码模式）+ 提示音 Select
+  - **声音开关**：Toggle（`notifications.soundEnabled`）
+  - **测试通知按钮**：点击后调用 `sendReplyNotification()` 触发一次通知
 
-    // 获取对话标题
-    const threadTitle = useTimelineStore.getState().threadsById[eventThreadId]?.threadTitle;
-    const body = threadTitle ?? 'AI 回复已完成';
+#### 2.6.4 注册设置页面
 
-    await sendNotification({
-      title: 'Codex WebUI',
-      body,
-      soundEnabled: settings['notifications.soundEnabled'] !== false,
-      method: settings['notifications.method'] === 'bark' ? 'bark' : 'browser',
-      barkServer: settings['notifications.barkServer'] as string,
-      barkKey: settings['notifications.barkKey'] as string,
-      barkSound: settings['notifications.barkSound'] as string,
-    });
-  } catch {
-    // 通知失败静默处理，不影响用户体验
-  }
+在 `web/src/components/settings/settings-page.tsx` 中：
+
+```typescript
+const SECTIONS = [
+  'general',
+  'account',
+  'codex',
+  'terminal',
+  'files',
+  'security',
+  'notifications',   // ← 新增
+] as const;
+```
+
+在 `sectionLabel()` 中添加映射：
+
+```typescript
+function sectionLabel(section: string): string {
+  const labels: Record<string, string> = {
+    general: 'General',
+    account: 'Account',
+    codex: 'Codex',
+    terminal: 'Terminal',
+    files: 'Files',
+    security: 'Security',
+    notifications: 'Notifications',
+  };
+  return labels[section] ?? section;
 }
 ```
 
-#### 2.4.4 设置页面
+在设置页渲染中新增条件分支：
 
-- **新增分类**：在 `settings-page.tsx` 的 `SECTIONS` 中添加 `'notifications'`。
-- **新增组件**：`notification-settings.tsx`，使用 `useCategorySettings('notifications')` 管理设置。
-- 包含：
-  - 全局通知开关（Switch）
-  - 通知方式选择器（浏览器通知 / Bark）
-  - 浏览器通知权限请求按钮（显示当前权限状态）
-  - Bark 配置区域（服务器地址、设备密钥、提示音选择）
-  - 声音开关
-  - "发送测试通知"按钮
+```typescript
+{section === 'notifications' && <NotificationSettings />}
+```
 
-### 2.5 后端变更
+### 2.7 声音实现对比
 
-- **新增 Runtime Settings**：在 `general` 分类下新增上述 6 个设置项，或新建 `notifications` 分类。
-- 由于本设计采用"前端直发 Bark"模式，后端仅需提供设置存储 API（已有 `settingsListSettings` / `settingsUpdateSetting` / `settingsResetSetting`），**无需新增后端接口**。
+| 方案 | 实现方式 | 优点 | 缺点 |
+|---|---|---|---|
+| ~~`new Audio()` 加载文件~~ | 需要外部 mp3/wav 或 Base64 | 音质可控 | 加载延迟、网络失败风险 |
+| **Web Audio API 生成音调** ✅ | `OscillatorNode` + `GainNode` | 零依赖、无加载、即时播放 | 音色较简单（双音调） |
+
+**选择 Web Audio API 方案**，不需要任何音频文件。
 
 ---
 
@@ -219,49 +384,50 @@ async function sendReplyNotification(
 1. **`useEffect` on `[timeline, virtualizer]`**（第 253-272 行）：当 timeline 长度变化且 `shouldAutoScroll.current` 为 true 时，滚动到底部。
 2. **`useEffect` on `[threadId]`**（第 274-282 行）：当 `threadId` 变化时，设置 `shouldAutoScroll.current = true` 并滚动到底部。
 
-但存在一个问题：当用户点击侧边栏对话时，`ThreadView` 组件挂载，`threadId` 变化触发 effect #2，但此时 `timeline` 可能为空（数据尚未从后端加载）。等 `resumeThread` 完成后，`timeline` 数据到达，触发 effect #1，但由于 `shouldAutoScroll.current` 在 effect #2 中已被设为 `true`，滚动应该可以工作。
+潜在问题：从侧边栏切换对话时，`threadId` 变化触发 effect #2，但此时 timeline 可能为空（数据未加载），滚动无效。之后数据加载完成触发 effect #1，但 `previousCount === 0` 时 `appended` 为 false，走 `'auto'` 分支，可以正确跳转。但 `shouldAutoScroll.current` 可能在 effect #2 中被设为 true，所以应该工作。
 
-需要验证的是：effect #1 中的 `appended` 分支是否覆盖了从 0 到 N 条数据的场景（hydration 场景）。从代码看，`previousCount > 0 && appended` 条件满足时使用 smooth 滚动，否则使用 auto 滚动。当从 0 到多条时，`previousCount === 0`，所以走 `'auto'` 分支，这是正确的。
-
-**结论**：核心逻辑已经存在，但需要添加一个机制确保在数据延迟加载场景下仍能可靠触发。
+不过在实践中，当用户快速切换对话时，效果可能不稳定。
 
 ### 3.2 改进方案
 
-**方案：增加 timeline 数据就绪后的滚动触发**
-
-在 `chat-timeline.tsx` 中，添加一个 `useEffect`，依赖 `[timeline, threadId]`，但增加一个"首次渲染完成"的标志：
+在 `chat-timeline.tsx` 中增强滚动逻辑：
 
 ```typescript
-// 新增：确保 timeline 数据加载完成后滚动到底部
-const timelineLoadedRef = useRef(false);
+// 新增：追踪当前 threadId 对应的 timeline 是否已完成首次渲染
+const lastRenderedThreadRef = useRef<string | null>(null);
 
+// 场景 A：切换对话 → behavior: 'auto'（直接跳转）
 useEffect(() => {
-  // 当 threadId 变化时，重置标志
-  if (threadId) {
-    timelineLoadedRef.current = false;
-  }
-}, [threadId]);
-
-useEffect(() => {
-  // 当 timeline 从空变为非空（数据加载完成）时，确保滚动到底部
-  if (timeline.length > 0 && !timelineLoadedRef.current) {
-    timelineLoadedRef.current = true;
+  if (timeline.length > 0 && lastRenderedThreadRef.current !== threadId) {
+    lastRenderedThreadRef.current = threadId;
     shouldAutoScroll.current = true;
-    virtualizer.scrollToIndex(timeline.length - 1, { align: 'end' });
+    virtualizer.scrollToIndex(timeline.length - 1, { align: 'end', behavior: 'auto' });
   }
-}, [timeline, virtualizer, threadId]);
+}, [threadId, timeline.length, virtualizer]);
+
+// 场景 B：同对话新消息 → behavior: 'smooth'（平滑滚动，已有逻辑增强）
+// 已有逻辑（timeline length 变化时的自动滚动）保持不变
 ```
 
-这个逻辑确保：
-1. 切换对话时重置状态
-2. 数据加载完成后强制滚动到底部
-3. 与现有自动滚动逻辑互补，不产生冲突
+**行为总结**：
+
+| 场景 | 行为 | behavior |
+|---|---|---|
+| 点击侧边栏切换到另一个对话 | 立即跳转到底部 | `auto` |
+| 同一个对话中收到新消息 | 平滑滚动到底部 | `smooth`（已有逻辑） |
+| 页面首次加载/刷新 | 立即跳转到底部 | `auto` |
 
 ### 3.3 涉及变更文件
 
-| 文件 | 变更 |
+| 文件 | 变更说明 |
 |---|---|
-| `web/src/components/chat/chat-timeline.tsx` | 增加上述滚动逻辑 |
+| `web/src/components/chat/chat-timeline.tsx` | 新增 `lastRenderedThreadRef` 逻辑，明确区分 auto/smooth |
+| `src/settings/settings.definitions.ts` | 新增 `notifications` 分类和 6 个设置定义 |
+| `web/src/hooks/use-notifications.ts` | **新增** — 通知核心 hook |
+| `web/src/hooks/notification-handlers.ts` | 在 `handleTurnCompleted` 中集成通知调用 |
+| `web/src/components/settings/notification-settings.tsx` | **新增** — 通知设置 UI |
+| `web/src/components/settings/settings-page.tsx` | 注册 `notifications` 分类标签页 |
+| `web/src/components/settings/setting-helpers.ts` | 添加 `notifications` 的 sectionLabel 映射 |
 
 ---
 
@@ -271,10 +437,10 @@ useEffect(() => {
 
 | 维度 | 影响 |
 |---|---|
-| **安全性** | Bark 设备密钥存储在前端 localStorage（通过 Zustand persist），与现有模式一致。非 HTTPS 站点浏览器通知可能受限。 |
+| **安全性** | Bark 设备密钥存储在后端 runtime settings DB（通过 API 读写），不暴露在前端 localStorage，比之前方案更安全 |
 | **性能** | 通知发送为异步非阻塞操作，不影响主流程 |
-| **兼容性** | 浏览器通知需要 HTTPS 或 localhost；Bark 需要网络访问 |
-| **i18n** | 需添加中文/英文翻译条目 |
+| **兼容性** | 浏览器通知需要 HTTPS 或 localhost；Bark 需要网络访问；Web Audio API 支持所有现代浏览器 |
+| **i18n** | 需添加中文/英文翻译条目（约 15 条） |
 
 ### 4.2 自动滚动
 
@@ -283,35 +449,12 @@ useEffect(() => {
 | **安全性** | 无 |
 | **性能** | 无 |
 | **兼容性** | 与现有 TanStack Virtual 虚拟列表完全兼容 |
-| **回归风险** | 低。改动范围小，与现有滚动逻辑正交 |
+| **回归风险** | 低。改动范围小，与现有滚动逻辑互补 |
 
 ---
 
-## 5. 测试计划
+## 5. 待定项（实施阶段确认）
 
-### 5.1 通知功能
-
-- [ ] 浏览器通知权限请求流程正常
-- [ ] 浏览器通知发送成功（标题、正文、图标正确）
-- [ ] 通知声音播放正常
-- [ ] Bark 通知发送成功
-- [ ] 通知开关关闭后不发送通知
-- [ ] 切换通知方式后使用对应方式发送
-- [ ] 设置页保存/重置正常
-- [ ] 测试通知按钮功能正常
-
-### 5.2 自动滚动
-
-- [ ] 点击侧边栏对话自动滚动到底部
-- [ ] 新建对话后自动滚动到底部
-- [ ] 用户手动滚动到上方后，新消息不强制滚动（保持现有行为）
-- [ ] 切换对话后正确滚动到新对话底部
-
----
-
-## 6. 未解决问题
-
-- [ ] Bark 通知是否需要自定义通知分组（通过 `group` 参数）？
-- [ ] 是否需要支持"仅当页面处于后台时发送通知"？
-
-*（以上问题将在实施阶段确认）*
+1. **通知分组**：Bark 是否需要用 `group` 参数将同一对话的多条通知折叠？
+2. **通知频率限制**：短时间内多个对话几乎同时完成，是否需要防抖（Debounce）合并通知？
+3. **`handleTurnCompleted` 中获取 threadTitle 的方式**：从 `useTimelineStore` 读取还是由 handler 参数传递？
