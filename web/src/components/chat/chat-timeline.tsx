@@ -211,10 +211,26 @@ export function ChatTimeline({ onEditMessage }: Props) {
     [], // refs are stable across renders; current refs are read at callback time
   );
 
+  // ── Render counter for debugging Error #185 ─────────────────
+  const renderCountRef = useRef(0);
+  renderCountRef.current += 1;
+  if (renderCountRef.current > 50) {
+    console.warn(
+      `[Timeline] Render #${renderCountRef.current} — possible nested-update loop`,
+      { timelineLength: timeline.length, threadId },
+    );
+  }
+
+  // Stable callback refs to prevent TanStack Virtual from detecting "option changes"
+  // on every render. Inline arrow functions create new references each time,
+  // which may trigger internal re-initialization and cascading re-renders.
+  const getScrollElement = useCallback(() => scrollRef.current, []);
+  const estimateSize = useCallback(() => 80, []);
+
   const virtualizer = useVirtualizer({
     count: timeline.length,
-    getScrollElement: () => scrollRef.current,
-    estimateSize: () => 80,
+    getScrollElement,
+    estimateSize,
     overscan: 5,
     observeElementRect: stableObserveElementRect,
   });
