@@ -154,8 +154,6 @@ export function ThreadSidebar() {
 
   const openLiveThread = (thread: ThreadDto) => {
     if (thread.id === threadId && threadMode === 'live') return;
-    setActiveThread(thread.id, thread.cwd, threadLabel(thread));
-    setLoadingForThread(thread.id, true);
     resumeThread.mutate({ path: { threadId: thread.id } });
     void navigate({ to: '/t/$threadId', params: { threadId: thread.id } });
   };
@@ -175,7 +173,6 @@ export function ThreadSidebar() {
   const createThread = useMutation({
     ...threadsStartThreadMutation(),
     onSuccess: (res) => {
-      setActiveThread(res.thread.id, res.cwd, threadLabel(res.thread));
       invalidateThreads();
       void navigate({ to: '/t/$threadId', params: { threadId: res.thread.id } });
     },
