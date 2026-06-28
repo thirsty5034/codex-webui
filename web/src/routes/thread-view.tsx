@@ -76,16 +76,21 @@ export function ThreadView() {
     onSuccess: (res) => {
       const tid = res.thread.id;
       const activeTurn = res.thread.turns.find((t: { status?: string }) => t.status === 'inProgress');
-      // Single batch store update instead of 5+ independent applyThreadUpdate calls.
-      // Reduces nested-update risk (React error #185) when Zustand subscribers
-      // cascade re-renders during thread hydration.
-      batchHydrateThread(tid, {
-        title: threadLabel(res.thread),
-        turns: res.thread.turns,
-        cwd: res.cwd,
-        status: res.thread.status,
-        activeTurnId: activeTurn?.id ?? null,
-        loading: Boolean(activeTurn),
+      // Defer Zustand store update to next animation frame via requestAnimationFrame.
+      // This breaks React 19's synchronous useSyncExternalStore commit-phase chain
+      // that causes nestedUpdateCount > 50 (Error #185). Without this deferral,
+      // TanStack Query's onSuccess (called during its internal state commit) triggers
+      // Zustand set() → useSyncExternalStore detects change → React 19 synchronously
+      // re-renders → more store changes → nestedUpdateCount loop.
+      requestAnimationFrame(() => {
+        batchHydrateThread(tid, {
+          title: threadLabel(res.thread),
+          turns: res.thread.turns,
+          cwd: res.cwd,
+          status: res.thread.status,
+          activeTurnId: activeTurn?.id ?? null,
+          loading: Boolean(activeTurn),
+        });
       });
       void tokenUsageReadThreadTokenUsage({ path: { threadId: tid } })
         .then(({ data }) => data && hydrateTokenUsageForThread(tid, data.turns))
