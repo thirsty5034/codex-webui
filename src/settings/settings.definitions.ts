@@ -6,6 +6,7 @@ export const SETTING_CATEGORIES = [
   'files',
   'security',
   'general',
+  'notifications',
 ] as const;
 
 export type SettingType = (typeof SETTING_TYPES)[number];
@@ -62,6 +63,15 @@ export const GENERAL_SETTING_KEYS = {
   onlyofficeJwtSecret: 'general.onlyofficeJwtSecret',
   onlyofficeSaveMaxBytes: 'general.onlyofficeSaveMaxBytes',
   publicBaseUrl: 'general.publicBaseUrl',
+} as const;
+
+export const NOTIFICATIONS_SETTING_KEYS = {
+  enabled: 'notifications.enabled',
+  type: 'notifications.type',
+  barkUrl: 'notifications.barkUrl',
+  barkKey: 'notifications.barkKey',
+  barkSound: 'notifications.barkSound',
+  soundEnabled: 'notifications.soundEnabled',
 } as const;
 
 export const TERMINAL_SETTING_DEFAULTS = {
@@ -196,6 +206,51 @@ export const SETTINGS_DEFINITIONS = [
       'Comma-separated list of allowed workspace root directories. Home directory is always included.',
     defaultValue: '',
     envKey: 'WORKSPACE_ROOTS',
+  },
+  {
+    key: NOTIFICATIONS_SETTING_KEYS.enabled,
+    type: 'boolean',
+    category: 'notifications',
+    description: 'Enable or disable all notifications globally.',
+    defaultValue: true,
+  },
+  {
+    key: NOTIFICATIONS_SETTING_KEYS.type,
+    type: 'string',
+    category: 'notifications',
+    description: 'Notification delivery method: browser, bark, both, or none.',
+    defaultValue: 'browser',
+    constraints: {
+      enum: ['browser', 'bark', 'both', 'none'] as const,
+    },
+  },
+  {
+    key: NOTIFICATIONS_SETTING_KEYS.barkUrl,
+    type: 'string',
+    category: 'notifications',
+    description: 'Bark server base URL (e.g. https://api.day.app).',
+    defaultValue: '',
+  },
+  {
+    key: NOTIFICATIONS_SETTING_KEYS.barkKey,
+    type: 'string',
+    category: 'notifications',
+    description: 'Bark device key.',
+    defaultValue: '',
+  },
+  {
+    key: NOTIFICATIONS_SETTING_KEYS.barkSound,
+    type: 'string',
+    category: 'notifications',
+    description: 'Bark notification sound name (e.g. default, alarm, birdsong, bell).',
+    defaultValue: 'default',
+  },
+  {
+    key: NOTIFICATIONS_SETTING_KEYS.soundEnabled,
+    type: 'boolean',
+    category: 'notifications',
+    description: 'Play a sound when a notification is delivered.',
+    defaultValue: true,
   },
 ] as const satisfies readonly SettingDefinition[];
 
