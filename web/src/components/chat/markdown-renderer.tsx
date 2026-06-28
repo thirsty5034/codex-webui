@@ -3,7 +3,7 @@
  * Uses react-markdown + remark-gfm. Code blocks get Shiki syntax highlighting
  * (lazy-loaded on first completed code block, plain <code> fallback while loading).
  */
-import { memo, useEffect, useMemo, useState, useCallback, type ComponentProps } from 'react';
+import { memo, useEffect, useState, useCallback, type ComponentProps } from 'react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Copy, Check } from 'lucide-react';
@@ -175,14 +175,9 @@ const components = (completed: boolean): ComponentProps<typeof Markdown>['compon
 });
 
 export const MarkdownRenderer = memo(function MarkdownRenderer({ content, completed }: Props) {
-  // Stable components reference: keeps react-markdown from remounting on every render.
-  // Without useMemo, components(completed) creates a new object reference each time,
-  // defeating memo() and causing all DOM nodes to be recreated during streaming.
-  const stableComponents = useMemo(() => components(completed), [completed]);
-
   return (
     <div className={cn('text-sm leading-relaxed', 'wrap-break-word')}>
-      <Markdown remarkPlugins={[remarkGfm]} components={stableComponents}>
+      <Markdown remarkPlugins={[remarkGfm]} components={components(completed)}>
         {content}
       </Markdown>
     </div>

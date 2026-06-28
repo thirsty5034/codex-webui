@@ -68,7 +68,6 @@ export function ThreadSidebar() {
   const hydrateTurnDiffsForThread = useTimelineStore((s) => s.hydrateTurnDiffsForThread);
   const hydrateTurnErrorsForThread = useTimelineStore((s) => s.hydrateTurnErrorsForThread);
   const setThreadTitleForThread = useTimelineStore((s) => s.setThreadTitleForThread);
-  const selectThread = useTimelineStore((s) => s.selectThread);
   const setLoadingForThread = useTimelineStore((s) => s.setLoadingForThread);
   const setThreadStatusForThread = useTimelineStore((s) => s.setThreadStatusForThread);
   const setActiveTurnIdForThread = useTimelineStore((s) => s.setActiveTurnIdForThread);
@@ -128,9 +127,6 @@ export function ThreadSidebar() {
     ...threadsResumeThreadMutation(),
     onSuccess: (res) => {
       const tid = res.thread.id;
-      // selectThread is safe here because onSuccess runs asynchronously
-      // (mutation callback, outside React's render/commit phase).
-      selectThread(tid);
       setThreadTitleForThread(tid, threadLabel(res.thread));
       hydrateTimelineForThread(tid, res.thread.turns, res.cwd);
       setThreadStatusForThread(tid, res.thread.status);
@@ -158,9 +154,8 @@ export function ThreadSidebar() {
 
   const openLiveThread = (thread: ThreadDto) => {
     if (thread.id === threadId && threadMode === 'live') return;
-    // No store mutations during route transition — they trigger React 19
-    // useSyncExternalStore cascade (Error #185). selectThread is called
-    // in onSuccess after the mutation completes.
+    setActiveThread(thread.id, thread.cwd, threadLabel(thread));
+    setLoadingForThread(thread.id, true);
     resumeThread.mutate({ path: { threadId: thread.id } });
     void navigate({ to: '/t/$threadId', params: { threadId: thread.id } });
   };
@@ -180,6 +175,7 @@ export function ThreadSidebar() {
   const createThread = useMutation({
     ...threadsStartThreadMutation(),
     onSuccess: (res) => {
+      setActiveThread(res.thread.id, res.cwd, threadLabel(res.thread));
       invalidateThreads();
       void navigate({ to: '/t/$threadId', params: { threadId: res.thread.id } });
     },

@@ -24,17 +24,29 @@ import { IntegrationsPage } from '@/components/integrations/integrations-page';
 
 // ── Lazy-loaded route components (heavy deps: Monaco, xterm, etc.) ──
 // These are split into separate chunks and loaded only when the route is visited.
-const FilesRoute = React.lazy(() => import('./files-route').then(m => ({ default: m.FilesRoute })));
-const TerminalRoute = React.lazy(() => import('./terminal-route').then(m => ({ default: m.TerminalRoute })));
-const DiagnosticsRoute = React.lazy(() => import('./diagnostics-route').then(m => ({ default: m.DiagnosticsRoute })));
+const FilesLazyRoute = React.lazy(() => import('./files-route').then(m => ({ default: m.FilesRoute })));
+const TerminalLazyRoute = React.lazy(() => import('./terminal-route').then(m => ({ default: m.TerminalRoute })));
+const DiagnosticsLazyRoute = React.lazy(() => import('./diagnostics-route').then(m => ({ default: m.DiagnosticsRoute })));
 
-/** Suspense fallback shown while lazy route chunks load. */
+/** Suspense fallback while lazy route chunks load. */
 function RouteFallback() {
   return (
     <div className="flex min-h-0 flex-1 items-center justify-center">
       <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
     </div>
   );
+}
+
+/** Route wrappers with Suspense — named components prevent TanStack Router
+ * from treating the route component as new on every render. */
+function FilesRoute() {
+  return <Suspense fallback={<RouteFallback />}><FilesLazyRoute /></Suspense>;
+}
+function TerminalRoute() {
+  return <Suspense fallback={<RouteFallback />}><TerminalLazyRoute /></Suspense>;
+}
+function DiagnosticsRoute() {
+  return <Suspense fallback={<RouteFallback />}><DiagnosticsLazyRoute /></Suspense>;
 }
 
 export type LoginSearch = { redirect: string };
@@ -112,33 +124,21 @@ export const threadRoute = createRoute({
 const filesRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/files',
-  component: () => (
-    <Suspense fallback={<RouteFallback />}>
-      <FilesRoute />
-    </Suspense>
-  ),
+  component: FilesRoute,
 });
 
 /** Global terminal view. */
 const terminalRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/terminal',
-  component: () => (
-    <Suspense fallback={<RouteFallback />}>
-      <TerminalRoute />
-    </Suspense>
-  ),
+  component: TerminalRoute,
 });
 
 /** Diagnostics panel. */
 const diagnosticsRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/diagnostics',
-  component: () => (
-    <Suspense fallback={<RouteFallback />}>
-      <DiagnosticsRoute />
-    </Suspense>
-  ),
+  component: DiagnosticsRoute,
 });
 
 /** Settings page. */

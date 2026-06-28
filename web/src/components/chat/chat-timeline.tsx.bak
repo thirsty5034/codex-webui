@@ -57,7 +57,7 @@ function computeRollbackTurns(timeline: TimelineEntry[], userIndex: number): num
 }
 
 /** Returns true if the scroll container is near the bottom. */
-function isNearBottom(el: HTMLElement, threshold = 120): boolean {
+function isNearBottom(el: HTMLElement, threshold = 60): boolean {
   return el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
 }
 
@@ -177,14 +177,16 @@ export function ChatTimeline({ onEditMessage }: Props) {
   }, [sidePanel]);
 
   // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Virtual known limitation
-  const virtualizer = useVirtualizer({
-    count: timeline.length,
-    getScrollElement: () => scrollRef.current,
-    estimateSize: () => 80,
-    overscan: 5,
-    observeElementRect: (_instance, cb) => {
+  // Stable observeElementRect reference: prevents TanStack Virtual from
+  // re-initializing its ResizeObserver on every render. With an inline arrow
+  // function, useVirtualizer sees a new reference each time and may destructively
+  // recreate the observer, triggering measurement cascades that contribute to
+  // React error #185 (nestedUpdateCount > 50).
+  const stableObserveElementRect = useCallback(
+    (_instance: any, cb: (rect: DOMRectReadOnly) => void) => {
       const el = scrollRef.current;
       if (!el) return () => {};
+
       const ro = new ResizeObserver((entries) => {
         for (const entry of entries) {
           // Always forward size to virtualizer so it can render items
@@ -206,39 +208,45 @@ export function ChatTimeline({ onEditMessage }: Props) {
       ro.observe(el);
       return () => { ro.disconnect(); };
     },
+    [], // refs are stable across renders; current refs are read at callback time
+  );
+
+  // ── Render counter for debugging Error #185 ─────────────────
+  const renderCountRef = useRef(0);
+  renderCountRef.current += 1;
+  if (renderCountRef.current > 50) {
+    console.warn(
+      `[Timeline] Render #${renderCountRef.current} — possible nested-update loop`,
+      { timelineLength: timeline.length, threadId },
+    );
+  }
+
+  // Stable callback refs to prevent TanStack Virtual from detecting "option changes"
+  // on every render. Inline arrow functions create new references each time,
+  // which may trigger internal re-initialization and cascading re-renders.
+  const getScrollElement = useCallback(() => scrollRef.current, []);
+  const estimateSize = useCallback(() => 80, []);
+
+  const virtualizer = useVirtualizer({
+    count: timeline.length,
+    getScrollElement,
+    estimateSize,
+    overscan: 5,
+    observeElementRect: stableObserveElementRect,
   });
-  // Track scrollTop via property setter override (captures ALL changes)
+  // Track scroll position via onScroll callback (no intrusive property override)
   const lastScrollTopRef = useRef<number | null>(null);
-  const applyScrollTopSetter = (el: HTMLElement | null) => {
-    if (!el) return;
-    // Skip if already has own descriptor (already overridden)
-    if (Object.getOwnPropertyDescriptor(el, 'scrollTop')) return;
-    // Find scrollTop descriptor on prototype chain
-    const descriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'scrollTop')
-      ?? Object.getOwnPropertyDescriptor(Element.prototype, 'scrollTop');
-    if (!descriptor?.set) return;
-    Object.defineProperty(el, 'scrollTop', {
-      get() { return descriptor.get!.call(this); },
-      set(v: number) {
-        descriptor.set!.call(this, v);
-        if (!panelTransitionRef.current) {
-          lastScrollTopRef.current = v;
-        }
-      },
-      configurable: true,
-    });
-  };
 
   const handleScroll = useCallback(() => {
     const el = scrollRef.current;
-    if (el && !panelTransitionRef.current) {
-      const nearBottom = isNearBottom(el);
-      shouldAutoScroll.current = nearBottom;
-      setShowScrollBottom(prev => {
-        const show = !nearBottom;
-        return prev === show ? prev : show;
-      });
-    }
+    if (!el || panelTransitionRef.current) return;
+    lastScrollTopRef.current = el.scrollTop;
+    const nearBottom = isNearBottom(el);
+    shouldAutoScroll.current = nearBottom;
+    setShowScrollBottom(prev => {
+      const show = !nearBottom;
+      return prev === show ? prev : show;
+    });
   }, []);
 
   // Cleanup pending animation frames
@@ -310,7 +318,7 @@ export function ChatTimeline({ onEditMessage }: Props) {
   return (
     <>
       <div
-        ref={(el) => { if (el) { (scrollRef as React.MutableRefObject<HTMLElement | null>).current = el; applyScrollTopSetter(el); } }}
+        ref={(el) => { if (el) { (scrollRef as React.MutableRefObject<HTMLElement | null>).current = el; } }}
         onScroll={handleScroll}
         className="relative min-h-0 flex-1 overflow-y-auto"
       >

@@ -63,14 +63,11 @@ interface Props {
 function ItemWithRequests({ item }: { item: TurnItem }) {
   const approval = useTimelineStore((s) => s.approvals[item.itemId]);
   // userInputRequests keyed by requestId — find matching entry by itemId.
-  // Narrow selector: only re-render when this item's userInputRequest changes.
   const userInputRequest = useTimelineStore((s) => {
-    for (const req of Object.values(s.userInputRequests)) {
-      if (req.itemId === item.itemId) {
-        return req.status === 'pending' ? req : req;
-      }
-    }
-    return null;
+    const match = Object.values(s.userInputRequests).filter(
+      (req) => req.itemId === item.itemId,
+    );
+    return match.find((req) => req.status === 'pending') ?? match[0] ?? null;
   });
 
   const inputCard = userInputRequest ? (
@@ -119,26 +116,17 @@ function ItemWithRequests({ item }: { item: TurnItem }) {
 
 export function TurnBlock({ entry, onShare, selectMode }: Props) {
   const { t } = useTranslation();
-  // Narrow subscriptions: only re-render when this turn's approvals/requests change.
+  const userInputRequests = useTimelineStore((s) => s.userInputRequests);
+  // Render user-input requests whose itemId doesn't match any existing turn item.
   const itemIds = new Set(entry.items.map((item) => item.itemId));
-  const unattachedInputs = useTimelineStore((s) => {
-    const result: Array<import('@/types/approval').UserInputRequest> = [];
-    for (const req of Object.values(s.userInputRequests)) {
-      if (req.turnId === entry.turnId && !itemIds.has(req.itemId)) {
-        result.push(req);
-      }
-    }
-    return result;
-  });
-  const unattachedApprovals = useTimelineStore((s) => {
-    const result: Array<import('@/types/approval').ApprovalRequest> = [];
-    for (const a of Object.values(s.approvals)) {
-      if (a.turnId === entry.turnId && a.status === 'pending' && !itemIds.has(a.itemId)) {
-        result.push(a);
-      }
-    }
-    return result;
-  });
+  const unattachedInputs = Object.values(userInputRequests).filter(
+    (req) => req.turnId === entry.turnId && !itemIds.has(req.itemId),
+  );
+  const approvals = useTimelineStore((s) => s.approvals);
+  // Render approval requests whose itemId doesn't match any turn item (e.g. MCP elicitation).
+  const unattachedApprovals = Object.values(approvals).filter(
+    (a) => a.turnId === entry.turnId && a.status === 'pending' && !itemIds.has(a.itemId),
+  );
 
   // Collect agentMessage text for copy (excludes reasoning/tool calls)
   const getAiMessageText = () =>

@@ -42,12 +42,16 @@ export function ThreadView() {
   const [sessionPanelOpen, setSessionPanelOpen] = useState(false);
 
   const threadCwd = useTimelineStore((s) => s.threadCwd);
-  const selectThread = useTimelineStore((s) => s.selectThread);
+  const setActiveThread = useTimelineStore((s) => s.setActiveThread);
   const setReadOnlyThread = useTimelineStore((s) => s.setReadOnlyThread);
-  const batchHydrateThread = useTimelineStore((s) => s.batchHydrateThread);
+  const hydrateTimelineForThread = useTimelineStore((s) => s.hydrateTimelineForThread);
   const hydrateTokenUsageForThread = useTimelineStore((s) => s.hydrateTokenUsageForThread);
   const hydrateTurnDiffsForThread = useTimelineStore((s) => s.hydrateTurnDiffsForThread);
   const hydrateTurnErrorsForThread = useTimelineStore((s) => s.hydrateTurnErrorsForThread);
+  const setThreadTitleForThread = useTimelineStore((s) => s.setThreadTitleForThread);
+  const setThreadStatusForThread = useTimelineStore((s) => s.setThreadStatusForThread);
+  const setActiveTurnIdForThread = useTimelineStore((s) => s.setActiveTurnIdForThread);
+  const setLoadingForThread = useTimelineStore((s) => s.setLoadingForThread);
 
   // Pending file open request from @mention click or image badge click.
   // Uses { path, seq } so re-clicking the same file still triggers a new open.
@@ -74,21 +78,18 @@ export function ThreadView() {
     ...threadsResumeThreadMutation(),
     onSuccess: (res) => {
       const tid = res.thread.id;
-      const activeTurn = res.thread.turns.find((t: { status?: string }) => t.status === 'inProgress');
-      // Defer both selectThread and batchHydrateThread to next animation frame.
-      // This breaks React 19's synchronous useSyncExternalStore commit-phase chain
-      // that causes nestedUpdateCount > 50 (Error #185).
-      requestAnimationFrame(() => {
-        selectThread(tid);
-        batchHydrateThread(tid, {
-          title: threadLabel(res.thread),
-          turns: res.thread.turns,
-          cwd: res.cwd,
-          status: res.thread.status,
-          activeTurnId: activeTurn?.id ?? null,
-          loading: Boolean(activeTurn),
-        });
-      });
+      const title = threadLabel(res.thread);
+      setThreadTitleForThread(tid, title);
+      hydrateTimelineForThread(tid, res.thread.turns, res.cwd);
+      // Restore active turn state so sidebar shows loading and input stays in steer mode.
+      setThreadStatusForThread(tid, res.thread.status);
+      const activeTurn = res.thread.turns.find((t) => t.status === 'inProgress');
+      if (activeTurn) {
+        setActiveTurnIdForThread(tid, activeTurn.id);
+        setLoadingForThread(tid, true);
+      } else {
+        setLoadingForThread(tid, false);
+      }
       void tokenUsageReadThreadTokenUsage({ path: { threadId: tid } })
         .then(({ data }) => data && hydrateTokenUsageForThread(tid, data.turns))
         .catch(() => undefined);
@@ -101,7 +102,7 @@ export function ThreadView() {
     },
     onError: (_err, vars) => {
       const failedId = vars.path.threadId;
-      useTimelineStore.getState().setLoadingForThread(failedId, false);
+      setLoadingForThread(failedId, false);
       // Only attempt archived read if this thread is still selected.
       if (useTimelineStore.getState().threadId === failedId) {
         void tryReadArchived(failedId);
@@ -137,17 +138,11 @@ export function ThreadView() {
     }
   };
 
-  // Minimal mount: skip synchronous store mutations to prevent React 19
-  // useSyncExternalStore cascading (Error #185). onSuccess handles all
-  // hydration async via requestAnimationFrame.
+  // Load or select thread when URL param changes. Backend ensures resume is deduped.
   useEffect(() => {
-    if (!threadId) return;
-    // Only fire mutation if thread isn't already hydrated (avoid duplicate
-    // mutations when sidebar's openLiveThread already triggered it).
-    const existing = useTimelineStore.getState().threadsById[threadId];
-    if (!existing?.hydrated) {
-      resumeThread.mutate({ path: { threadId } });
-    }
+    setActiveThread(threadId);
+    setLoadingForThread(threadId, true);
+    resumeThread.mutate({ path: { threadId } });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [threadId]);
 
@@ -173,7 +168,7 @@ export function ThreadView() {
         <ResizablePanelGroup orientation="vertical" className="min-h-0 flex-1">
           <ResizablePanel defaultSize="65%" minSize="20%">
             <div className="flex h-full flex-col">
-              <ChatTimeline key={threadId} onEditMessage={(v) => chatInputRef.current?.setInput(v)} />
+              <ChatTimeline onEditMessage={(v) => chatInputRef.current?.setInput(v)} />
             </div>
           </ResizablePanel>
           <ResizableHandle withHandle />
@@ -184,7 +179,7 @@ export function ThreadView() {
           </ResizablePanel>
         </ResizablePanelGroup>
       ) : (
-        <ChatTimeline key={threadId} onEditMessage={(v) => chatInputRef.current?.setInput(v)} />
+        <ChatTimeline onEditMessage={(v) => chatInputRef.current?.setInput(v)} />
       )}
 
       {/* Mobile/Tablet: session panel as bottom Sheet */}
