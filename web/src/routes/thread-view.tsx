@@ -44,13 +44,10 @@ export function ThreadView() {
   const threadCwd = useTimelineStore((s) => s.threadCwd);
   const setActiveThread = useTimelineStore((s) => s.setActiveThread);
   const setReadOnlyThread = useTimelineStore((s) => s.setReadOnlyThread);
-  const hydrateTimelineForThread = useTimelineStore((s) => s.hydrateTimelineForThread);
+  const batchHydrateThread = useTimelineStore((s) => s.batchHydrateThread);
   const hydrateTokenUsageForThread = useTimelineStore((s) => s.hydrateTokenUsageForThread);
   const hydrateTurnDiffsForThread = useTimelineStore((s) => s.hydrateTurnDiffsForThread);
   const hydrateTurnErrorsForThread = useTimelineStore((s) => s.hydrateTurnErrorsForThread);
-  const setThreadTitleForThread = useTimelineStore((s) => s.setThreadTitleForThread);
-  const setThreadStatusForThread = useTimelineStore((s) => s.setThreadStatusForThread);
-  const setActiveTurnIdForThread = useTimelineStore((s) => s.setActiveTurnIdForThread);
   const setLoadingForThread = useTimelineStore((s) => s.setLoadingForThread);
 
   // Pending file open request from @mention click or image badge click.
@@ -78,18 +75,18 @@ export function ThreadView() {
     ...threadsResumeThreadMutation(),
     onSuccess: (res) => {
       const tid = res.thread.id;
-      const title = threadLabel(res.thread);
-      setThreadTitleForThread(tid, title);
-      hydrateTimelineForThread(tid, res.thread.turns, res.cwd);
-      // Restore active turn state so sidebar shows loading and input stays in steer mode.
-      setThreadStatusForThread(tid, res.thread.status);
-      const activeTurn = res.thread.turns.find((t) => t.status === 'inProgress');
-      if (activeTurn) {
-        setActiveTurnIdForThread(tid, activeTurn.id);
-        setLoadingForThread(tid, true);
-      } else {
-        setLoadingForThread(tid, false);
-      }
+      const activeTurn = res.thread.turns.find((t: { status?: string }) => t.status === 'inProgress');
+      // Single batch store update instead of 5+ independent applyThreadUpdate calls.
+      // Reduces nested-update risk (React error #185) when Zustand subscribers
+      // cascade re-renders during thread hydration.
+      batchHydrateThread(tid, {
+        title: threadLabel(res.thread),
+        turns: res.thread.turns,
+        cwd: res.cwd,
+        status: res.thread.status,
+        activeTurnId: activeTurn?.id ?? null,
+        loading: Boolean(activeTurn),
+      });
       void tokenUsageReadThreadTokenUsage({ path: { threadId: tid } })
         .then(({ data }) => data && hydrateTokenUsageForThread(tid, data.turns))
         .catch(() => undefined);

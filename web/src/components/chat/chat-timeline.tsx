@@ -177,14 +177,16 @@ export function ChatTimeline({ onEditMessage }: Props) {
   }, [sidePanel]);
 
   // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Virtual known limitation
-  const virtualizer = useVirtualizer({
-    count: timeline.length,
-    getScrollElement: () => scrollRef.current,
-    estimateSize: () => 80,
-    overscan: 5,
-    observeElementRect: (_instance, cb) => {
+  // Stable observeElementRect reference: prevents TanStack Virtual from
+  // re-initializing its ResizeObserver on every render. With an inline arrow
+  // function, useVirtualizer sees a new reference each time and may destructively
+  // recreate the observer, triggering measurement cascades that contribute to
+  // React error #185 (nestedUpdateCount > 50).
+  const stableObserveElementRect = useCallback(
+    (_instance: any, cb: (rect: DOMRectReadOnly) => void) => {
       const el = scrollRef.current;
       if (!el) return () => {};
+
       const ro = new ResizeObserver((entries) => {
         for (const entry of entries) {
           // Always forward size to virtualizer so it can render items
@@ -206,6 +208,15 @@ export function ChatTimeline({ onEditMessage }: Props) {
       ro.observe(el);
       return () => { ro.disconnect(); };
     },
+    [], // refs are stable across renders; current refs are read at callback time
+  );
+
+  const virtualizer = useVirtualizer({
+    count: timeline.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 80,
+    overscan: 5,
+    observeElementRect: stableObserveElementRect,
   });
   // Track scroll position via onScroll callback (no intrusive property override)
   const lastScrollTopRef = useRef<number | null>(null);

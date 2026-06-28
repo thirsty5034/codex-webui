@@ -476,6 +476,20 @@ interface TimelineState {
   hydrateTurnDiffs: (turns: Array<{ turnId: string; diff: string }>) => void;
   resolveApprovalByRequestId: (requestId: string | number) => void;
 
+  /** Batch hydrate: merges resume thread data in a single store update.
+   *  Prevents nested-update loops (React error #185) caused by 5+ consecutive
+   *  applyThreadUpdate calls during thread load. */
+  batchHydrateThread: (
+    threadId: string,
+    data: {
+      title: string | null;
+      turns: TurnDto[];
+      cwd?: string | null;
+      status: ThreadStatusType;
+      activeTurnId: string | null;
+      loading: boolean;
+    },
+  ) => void;
   hydrateTimelineForThread: (threadId: string, turns: TurnDto[], cwd?: string | null) => void;
   hydrateTokenUsageForThread: (threadId: string, turns: Array<{ turnId: string; usage: ThreadTokenUsage }>) => void;
   hydrateTurnDiffsForThread: (threadId: string, turns: Array<{ turnId: string; diff: string }>) => void;
@@ -812,6 +826,23 @@ export const useTimelineStore = create<TimelineState>((set, get) => {
     resolveApprovalByRequestId: (requestId) => {
       const threadId = selectedThread();
       if (threadId) get().resolveApprovalByRequestIdForThread(threadId, requestId);
+    },
+
+    /** Combines multiple store updates into one applyThreadUpdate call. */
+    batchHydrateThread: (threadId, data) => {
+      applyThreadUpdate(threadId, (runtime) => ({
+        ...runtime,
+        threadTitle: data.title,
+        threadCwd: data.cwd ?? runtime.threadCwd,
+        timeline: ensureUserInputTurnEntries(
+          turnsToTimeline(data.turns),
+          runtime.userInputRequests,
+        ),
+        threadStatus: data.status,
+        activeTurnId: data.activeTurnId,
+        loading: data.loading,
+        hydrated: true,
+      }));
     },
 
     hydrateTimelineForThread: (threadId, turns, cwd) => {
