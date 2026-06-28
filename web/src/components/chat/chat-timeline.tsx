@@ -143,6 +143,7 @@ export function ChatTimeline({ onEditMessage }: Props) {
   const prevCountRef = useRef(timeline.length);
   const shouldAutoScroll = useRef(true);
   const scrollFrameRef = useRef<number | null>(null);
+  const lastRenderedThreadRef = useRef<string | null>(null);
 
   // Panel transition state
   const sidePanel = useLayoutStore((s) => s.sidePanel);
@@ -271,15 +272,19 @@ export function ChatTimeline({ onEditMessage }: Props) {
     });
   }, [timeline, virtualizer]);
 
-  // Scroll to bottom on initial load / thread switch
+  // 切换对话 → behavior: 'auto' 直接跳转到底部
   useEffect(() => {
-    if (timeline.length > 0) {
+    if (timeline.length > 0 && lastRenderedThreadRef.current !== threadId) {
+      lastRenderedThreadRef.current = threadId;
       shouldAutoScroll.current = true;
-      virtualizer.scrollToIndex(timeline.length - 1, { align: 'end' });
+      virtualizer.scrollToIndex(timeline.length - 1, {
+        align: 'end',
+        behavior: 'auto',
+      });
     }
-    // Only on threadId change
+    // Only on threadId or timeline.length change
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [threadId]);
+  }, [threadId, timeline.length]);
 
   const virtualItems = virtualizer.getVirtualItems();
 
