@@ -18,6 +18,7 @@ import { CodexSettings } from './codex-settings';
 import { TerminalSettings } from './terminal-settings';
 import { FilesSettings } from './files-settings';
 import { SecuritySettings } from './security-settings';
+import { NotificationSettings } from './notification-settings';
 
 const SECTIONS = [
   'general',
@@ -26,6 +27,7 @@ const SECTIONS = [
   'terminal',
   'files',
   'security',
+  'notifications',
 ] as const;
 
 type SettingsSection = (typeof SECTIONS)[number];
@@ -97,6 +99,7 @@ export function SettingsPage() {
         {section === 'terminal' && <TerminalSettings />}
         {section === 'files' && <FilesSettings />}
         {section === 'security' && <SecuritySettings />}
+        {section === 'notifications' && <NotificationSettings />}
       </div>
     </div>
   );
