@@ -513,14 +513,6 @@ interface TimelineState {
 }
 
 export const useTimelineStore = create<TimelineState>((set, get) => {
-  /**
-   * Optimized store updater that avoids redundant object spreads:
-   * - When updating the *visible* thread: skip persistSelectedRuntime (no need
-   *   to save top-level fields back into threadsById since we overwrite them
-   *   immediately via selectedFields). This avoids an O(n) spread of all threads.
-   * - When updating a *background* thread: persistSelectedRuntime is required
-   *   to save the visible thread's state before modifying a different key.
-   */
   const applyThreadUpdate = (
     threadId: string,
     updater: (runtime: ThreadRuntimeState) => ThreadRuntimeState,
@@ -528,17 +520,10 @@ export const useTimelineStore = create<TimelineState>((set, get) => {
     set((state) => {
       const base = readRuntime(state, threadId) ?? createRuntime({ threadId });
       const runtime = touchRuntime(updater(base));
-
-      if (state.threadId === threadId) {
-        // Hot path: updating the currently visible thread.
-        // Skip persistSelectedRuntime to avoid O(n) spread of all threads.
-        const threadsById = { ...state.threadsById, [threadId]: runtime };
-        return { threadsById, ...selectedFields(runtime) } as Partial<TimelineState>;
-      }
-
-      // Cold path: updating a background thread — persist selected first.
       const threadsById = { ...persistSelectedRuntime(state), [threadId]: runtime };
-      return { threadsById };
+      const patch: Partial<TimelineState> = { threadsById };
+      if (state.threadId === threadId) Object.assign(patch, selectedFields(runtime));
+      return patch;
     });
   };
 
