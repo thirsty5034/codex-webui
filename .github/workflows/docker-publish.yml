@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - 'codex-*'
+    branches:
+      - 'main'
   workflow_dispatch:
     inputs:
       tag_override:
@@ -131,6 +133,16 @@ jobs:
             --amend ${AMD64_IMAGE} \
             --amend ${ARM64_IMAGE}
           docker manifest push ${LATEST_TAG}
+
+          # For push-to-main (non-tag), also create a dev tag so production can opt-in
+          if [[ "${{ github.ref_type }}" != "tag" ]]; then
+            DEV_TAG="${IMAGE_BASE}:dev"
+            echo "Creating dev manifest: ${DEV_TAG} (from ${VERSION_TAG})"
+            docker manifest create ${DEV_TAG} \
+              --amend ${AMD64_IMAGE} \
+              --amend ${ARM64_IMAGE}
+            docker manifest push ${DEV_TAG}
+          fi
 
           echo "Manifests pushed successfully"
 
