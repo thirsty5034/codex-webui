@@ -229,7 +229,7 @@ export const SETTINGS_DEFINITIONS = [
     type: 'string',
     category: 'notifications',
     description: 'Bark server base URL (e.g. https://api.day.app).',
-    defaultValue: '',
+    defaultValue: 'https://api.day.app',
   },
   {
     key: NOTIFICATIONS_SETTING_KEYS.barkKey,

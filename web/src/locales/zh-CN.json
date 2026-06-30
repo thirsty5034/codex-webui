@@ -613,5 +613,22 @@
   "Send a test notification": "发送测试通知",
   "Test": "测试",
   "Test notification sent": "测试通知已发送",
-  "Failed to send test notification": "测试通知发送失败"
+  "Failed to send test notification": "测试通知发送失败",
+  "Enable or disable all notifications globally.": "全局启用或禁用所有通知。",
+  "Notification delivery method: browser, bark, both, or none.": "通知投递方式：浏览器通知、Bark 推送、两者同时、或关闭。",
+  "Bark server base URL (e.g. https://api.day.app).": "Bark 服务器地址（例如 https://api.day.app）。",
+  "Bark device key.": "Bark 设备密钥。",
+  "Bark notification sound name (e.g. default, alarm, birdsong, bell).": "Bark 通知提示音名称（如 default、alarm、birdsong、bell）。",
+  "Play a sound when a notification is delivered.": "通知送达时播放提示音。",
+  "Type": "投递方式",
+  "Sound Enabled": "声音开关",
+  "Bark Url": "Bark 服务器地址",
+  "Bark Key": "Bark 设备密钥",
+  "Bark Sound": "Bark 提示音",
+  "setting.option.true": "开启",
+  "setting.option.false": "关闭",
+  "setting.option.notifications.type.browser": "浏览器通知",
+  "setting.option.notifications.type.bark": "Bark 推送",
+  "setting.option.notifications.type.both": "两者同时",
+  "setting.option.notifications.type.none": "关闭"
 }

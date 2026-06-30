@@ -127,6 +127,7 @@ export function NotificationSettings() {
                   setting={setting}
                   draft={runtimeSettings.drafts[setting.key] ?? ''}
                   disabled={runtimeSettings.isSaving}
+                  placeholder={setting.key === 'notifications.barkUrl' ? 'https://api.day.app' : setting.key === 'notifications.barkKey' ? '请输入 Bark 设备密钥' : undefined}
                   onDraftChange={runtimeSettings.handleDraftChange}
                   onSave={runtimeSettings.handleSave}
                   onReset={runtimeSettings.handleReset}
