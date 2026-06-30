@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { ChevronDown, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -8,7 +9,7 @@ interface Props {
   item: TurnItem;
 }
 
-export function ReasoningItem({ item }: Props) {
+export const ReasoningItem = memo(function ReasoningItem({ item }: Props) {
   const { t } = useTranslation();
   const expanded = useTimelineStore((s) => s.expandedReasoning.has(item.itemId));
   const toggleReasoning = useTimelineStore((s) => s.toggleReasoning);
@@ -44,4 +45,4 @@ export function ReasoningItem({ item }: Props) {
       )}
     </div>
   );
-}
+});

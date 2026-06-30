@@ -2,7 +2,7 @@
  * Renders a single AI turn as a unified block.
  * Contains all items (reasoning, tool calls, messages) under one avatar.
  */
-import { Bot, Loader2 } from 'lucide-react';
+import { Bot, ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import type { TimelineEntry, TurnItem } from '@/types/timeline';
@@ -17,6 +17,7 @@ import { ApprovalItem } from './turn-items/approval-item';
 import { UserInputCard } from './turn-items/user-input-card';
 import { TurnTokenFooter } from './turn-token-footer';
 import { PlanPanel } from './plan-panel';
+import { memo, useMemo, useState } from 'react';
 import { useTimelineStore } from '@/stores/timeline-store';
 
 /* ── Grouping consecutive mcpToolCall items ── */
@@ -114,7 +115,7 @@ function ItemWithRequests({ item }: { item: TurnItem }) {
   }
 }
 
-export function TurnBlock({ entry, onShare, selectMode }: Props) {
+export const TurnBlock = memo(function TurnBlock({ entry, onShare, selectMode }: Props) {
   const { t } = useTranslation();
   const userInputRequests = useTimelineStore((s) => s.userInputRequests);
   // Render user-input requests whose itemId doesn't match any existing turn item.
@@ -140,6 +141,20 @@ export function TurnBlock({ entry, onShare, selectMode }: Props) {
     ? entry.items.filter((i) => i.type === 'agentMessage' && i.content)
     : entry.items;
 
+  // ── Tool call summary for turns with many tool calls ──
+  // When a turn has >20 mcpToolCall items, add a master collapse/expand toggle
+  // to avoid rendering hundreds of DOM nodes during scroll.
+  const toolCallCount = useMemo(
+    () => entry.items.filter((i) => i.type === 'mcpToolCall').length,
+    [entry.items],
+  );
+  const [toolCallsCollapsed, setToolCallsCollapsed] = useState(toolCallCount > 20);
+
+  // Filter display items based on collapse state
+  const filteredItems = toolCallsCollapsed
+    ? displayItems.filter((i) => i.type !== 'mcpToolCall')
+    : displayItems;
+
   return (
     <div className="group/turn mb-6 flex gap-3">
       <Avatar className="mt-1 h-8 w-8 shrink-0">
@@ -151,7 +166,34 @@ export function TurnBlock({ entry, onShare, selectMode }: Props) {
       <div className="glass-1 relative min-w-0 flex-1 space-y-2 rounded-2xl px-4 py-3">
         {!selectMode && entry.plan && <PlanPanel plan={entry.plan} completed={entry.completed} />}
 
-        {groupConsecutiveToolCalls(displayItems).map((group) => {
+        {toolCallCount > 20 && (
+          <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-muted/30 px-3 py-1.5 text-xs text-muted-foreground">
+            <button
+              type="button"
+              onClick={() => setToolCallsCollapsed((v) => !v)}
+              className="flex items-center gap-1 font-medium hover:text-foreground"
+            >
+              {toolCallsCollapsed ? (
+                <ChevronRight className="h-3.5 w-3.5" />
+              ) : (
+                <ChevronDown className="h-3.5 w-3.5" />
+              )}
+              {toolCallsCollapsed
+                ? t('{{count}} tool calls (collapsed)', { count: toolCallCount })
+                : t('{{count}} tool calls', { count: toolCallCount })}
+            </button>
+            <span className="text-muted-foreground/50">·</span>
+            <button
+              type="button"
+              onClick={() => setToolCallsCollapsed((v) => !v)}
+              className="hover:text-foreground"
+            >
+              {toolCallsCollapsed ? t('Show') : t('Hide')}
+            </button>
+          </div>
+        )}
+
+        {groupConsecutiveToolCalls(filteredItems).map((group) => {
           if (group.kind === 'single') {
             return <ItemWithRequests key={group.item.itemId} item={group.item} />;
           }
@@ -186,4 +228,4 @@ export function TurnBlock({ entry, onShare, selectMode }: Props) {
       </div>
     </div>
   );
-}
+});

@@ -3,7 +3,7 @@
  * Uses react-markdown + remark-gfm. Code blocks get Shiki syntax highlighting
  * (lazy-loaded on first completed code block, plain <code> fallback while loading).
  */
-import { memo, useEffect, useState, useCallback, type ComponentProps } from 'react';
+import { memo, useEffect, useRef, useState, useCallback, type ComponentProps } from 'react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Copy, Check } from 'lucide-react';
@@ -55,10 +55,30 @@ function CodeBlock({
   const { t } = useTranslation();
   const [html, setHtml] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [inView, setInView] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
   const lang = className?.replace('language-', '') ?? '';
 
+  // IntersectionObserver: only highlight when code block enters viewport
+  // This prevents Shiki codeToHtml from blocking the main thread during scroll.
   useEffect(() => {
-    if (!completed || !lang) return;
+    const el = ref.current;
+    if (!el || !completed || !lang) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setInView(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '200px' }, // Trigger 200px before the block enters viewport
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [completed, lang]);
+
+  useEffect(() => {
+    if (!completed || !lang || !inView) return;
     let cancelled = false;
 
     void getHighlighter().then((hl) => {
@@ -78,7 +98,7 @@ function CodeBlock({
     });
 
     return () => { cancelled = true; };
-  }, [children, lang, completed]);
+  }, [children, lang, completed, inView]);
 
   const handleCopy = useCallback(async () => {
     try {
@@ -91,7 +111,7 @@ function CodeBlock({
   }, [children, t]);
 
   return (
-    <div className="group relative my-3 overflow-hidden rounded-lg border border-border/50 bg-[#0d1117]">
+    <div ref={ref} className="group relative my-3 overflow-hidden rounded-lg border border-border/50 bg-[#0d1117]">
       <div className="flex items-center justify-between border-b border-border/30 px-3 py-1">
         <span className="text-xs text-muted-foreground">{lang || t('Code')}</span>
         <button

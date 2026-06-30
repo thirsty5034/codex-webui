@@ -3,7 +3,7 @@
  * Default collapsed — header shows file path, approval status, and +/- stats.
  * When a pending approval exists, accept/acceptForSession/decline/cancel buttons appear.
  */
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import {
   FileCode,
   Loader2,
@@ -40,7 +40,7 @@ function toRpcDecision(decision: ResolvableApprovalDecision): string {
   }
 }
 
-export function FileChangeItem({ item, approval }: Props) {
+export const FileChangeItem = memo(function FileChangeItem({ item, approval }: Props) {
   const { t } = useTranslation();
   const resolveApproval = useTimelineStore((s) => s.resolveApproval);
   const [expanded, setExpanded] = useState(false);
@@ -243,4 +243,4 @@ export function FileChangeItem({ item, approval }: Props) {
       )}
     </div>
   );
-}
+});

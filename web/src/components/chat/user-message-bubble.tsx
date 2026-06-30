@@ -1,6 +1,7 @@
 /**
  * User message bubble with markdown rendering, clickable @mentions, and image badges.
  * Uses react-markdown + remark-gfm + custom remark-mentions plugin.
+ * Long messages (>5000 chars) are rendered as plain <pre> to avoid react-markdown parsing overhead.
  */
 import { useMemo, type ComponentProps } from 'react';
 import Markdown, { defaultUrlTransform } from 'react-markdown';
@@ -93,6 +94,49 @@ const userComponents: ComponentProps<typeof Markdown>['components'] = {
 };
 
 export function UserMessageBubble({ content, threadCwd, images }: Props) {
+  // ── Massive content (>5000 chars): skip react-markdown, render as plain text ──
+  // react-markdown parses the entire AST synchronously; for very long messages this
+  // blocks the main thread for hundreds of milliseconds (e.g. 31K char JSON payload).
+  const IS_MASSIVE = content.length > 5000;
+
+  // Filter out direct URLs — only server paths are openable
+  const imageFiles = images?.filter((src) => !/^(https?|data|blob):/.test(src));
+
+  if (IS_MASSIVE) {
+    return (
+      <div className="text-sm leading-relaxed [overflow-wrap:break-word]">
+        <pre
+          className="w-full whitespace-pre-wrap rounded bg-black/30 p-3 font-mono text-xs leading-relaxed opacity-90"
+          style={{ maxHeight: '50vh', overflowY: 'auto' }}
+        >
+          {content}
+        </pre>
+        {imageFiles && imageFiles.length > 0 && (
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {imageFiles.map((src, i) => (
+              <span
+                key={i}
+                role="button"
+                tabIndex={0}
+                onClick={() => openFileInPanel(src)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    openFileInPanel(src);
+                  }
+                }}
+                className="inline-flex cursor-pointer items-center gap-1 rounded bg-white/15 px-1.5 py-0.5 font-mono text-[0.85em] transition-colors hover:bg-white/25"
+              >
+                <ImageIcon className="inline h-3 w-3 opacity-70" />
+                {src.split('/').pop() ?? src}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   // Normalize absolute @mentions to relative before rendering
   const normalizedContent = useMemo(
     () => normalizeMessageMentions(content, threadCwd),
@@ -104,9 +148,6 @@ export function UserMessageBubble({ content, threadCwd, images }: Props) {
     () => [remarkGfm, remarkMentions(threadCwd)],
     [threadCwd],
   );
-
-  // Filter out direct URLs — only server paths are openable
-  const imageFiles = images?.filter((src) => !/^(https?|data|blob):/.test(src));
 
   return (
     <div className="text-sm leading-relaxed [overflow-wrap:break-word]">

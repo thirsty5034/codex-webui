@@ -182,7 +182,7 @@ export function ChatTimeline({ onEditMessage }: Props) {
     count: timeline.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: () => 80,
-    overscan: 5,
+    overscan: 2,
     observeElementRect: (_instance, cb) => {
       const el = scrollRef.current;
       if (!el) return () => {};

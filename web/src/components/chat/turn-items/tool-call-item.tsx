@@ -2,7 +2,7 @@
  * Renders a single MCP tool call with a collapsible body.
  * Header shows tool name + status; body (args, progress, result) can be toggled.
  */
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { ChevronRight, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { TurnItem } from '@/types/timeline';
@@ -12,7 +12,7 @@ interface Props {
   item: TurnItem;
 }
 
-export function ToolCallItem({ item }: Props) {
+export const ToolCallItem = memo(function ToolCallItem({ item }: Props) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(!item.completed);
   const hasBody = !!(item.toolArgs || item.toolProgress || item.content);
@@ -85,4 +85,4 @@ export function ToolCallItem({ item }: Props) {
       )}
     </div>
   );
-}
+});

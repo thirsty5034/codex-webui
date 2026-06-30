@@ -2,7 +2,7 @@
  * Renders a command execution item showing the command and its output.
  * Long commands are collapsible — never truncated for safety.
  */
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import { ChevronDown, ChevronRight, Loader2, Terminal } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { TurnItem } from '@/types/timeline';
@@ -15,7 +15,7 @@ interface Props {
 /** Threshold (in chars) above which the command is collapsed by default. */
 const COLLAPSE_THRESHOLD = 200;
 
-export function CommandItem({ item }: Props) {
+export const CommandItem = memo(function CommandItem({ item }: Props) {
   const { t } = useTranslation();
   const fullCommand = item.command ? stripShellWrapper(item.command) : undefined;
   const isLong = (fullCommand?.length ?? 0) > COLLAPSE_THRESHOLD;
@@ -87,7 +87,7 @@ export function CommandItem({ item }: Props) {
       )}
     </div>
   );
-}
+});
 
 /**
  * Strips the shell invocation wrapper added by Codex.

@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { TurnItem } from '@/types/timeline';
 import { MarkdownRenderer } from '../markdown-renderer';
 
@@ -5,10 +6,10 @@ interface Props {
   item: TurnItem;
 }
 
-export function AgentMessageItem({ item }: Props) {
+export const AgentMessageItem = memo(function AgentMessageItem({ item }: Props) {
   return (
     <div>
       <MarkdownRenderer content={item.content} completed={item.completed} />
     </div>
   );
-}
+});
