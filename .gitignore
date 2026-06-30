@@ -71,3 +71,5 @@ database.db
 
 # 隔离测试环境数据
 .root.codex-test/
+# 开发工具脚本（含本地配置、测试域名、密钥默认值，不应提交）
+scripts/
