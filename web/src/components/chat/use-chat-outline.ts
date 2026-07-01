@@ -56,20 +56,8 @@ export function parseOutline(timeline: TimelineEntry[]): OutlineItem[] {
         index: i,
       };
 
-      // 如果有文件变更，添加子条目
-      const children: OutlineItem[] = [];
-      for (const item of entry.items) {
-        if (item.type === 'fileChange' && item.filePath) {
-          children.push({
-            label: `📄 ${truncate(item.filePath, 30)}`,
-            type: 'assistant',
-            index: i,
-          });
-        }
-      }
-      if (children.length > 0) {
-        outlineItem.children = children;
-      }
+      // 暂时保留 children 接口但留空，后续可按需扩展
+      // 取消子条目，保持纯净;
 
       items.push(outlineItem);
     }
