@@ -358,7 +358,7 @@ export function ChatTimeline({ onEditMessage }: Props) {
   // ── Virtualized list ────────────────────────────────────────────────
   return (
     <>
-      <div className="relative min-h-0 flex-1">
+      <div className="relative min-h-0 flex-1 flex flex-col">
         <div
           ref={(el) => { if (el) { (scrollRef as React.MutableRefObject<HTMLElement | null>).current = el; applyScrollTopSetter(el); } }}
           onScroll={handleScroll}
