@@ -1,7 +1,7 @@
 /**
- * 右侧大纲触发条 + 悬浮面板
- * 使用 position:absolute 相对于对话容器定位，
- * 触发条在滚动条左侧（right: 14px），避开滚动条遮挡
+ * 视口右侧大纲触发条 + 悬浮面板
+ * 使用 createPortal 渲染到 document.body + position:fixed，
+ * 完全不受父元素 transform 影响，定位在视口最右侧边缘
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -129,7 +129,6 @@ export function ChatOutline({ items, onScrollTo, onScrollTop, onScrollBottom }: 
             onScrollTo={onScrollTo}
             onScrollTop={onScrollTop}
             onScrollBottom={onScrollBottom}
-
           />
         </div>
       </div>

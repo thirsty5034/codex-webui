@@ -56,8 +56,7 @@ export function parseOutline(timeline: TimelineEntry[]): OutlineItem[] {
         index: i,
       };
 
-      // 暂时保留 children 接口但留空，后续可按需扩展
-      // 取消子条目，保持纯净;
+      // children 接口保留在 OutlineItem 类型中，后续可按需启用
 
       items.push(outlineItem);
     }

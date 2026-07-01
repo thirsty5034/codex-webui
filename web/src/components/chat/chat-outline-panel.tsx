@@ -2,7 +2,7 @@
  * 对话大纲面板 - 显示在右侧悬浮触发块中
  * 展示对话结构树，支持搜索过滤和点击跳转
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -13,8 +13,6 @@ import type { OutlineItem } from './use-chat-outline';
 interface Props {
   items: OutlineItem[];
   isPinned: boolean;
-  /** 外部触发聚焦搜索框 */
-  focusSearch?: boolean;
   onTogglePin: () => void;
   onScrollTo: (index: number) => void;
   onScrollTop: () => void;
@@ -42,7 +40,6 @@ function highlightText(text: string, keyword: string): React.ReactNode {
 export function ChatOutlinePanel({
   items,
   isPinned,
-  focusSearch,
   onTogglePin,
   onScrollTo,
   onScrollTop,
@@ -52,13 +49,7 @@ export function ChatOutlinePanel({
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // 外部触发聚焦搜索框
-  useEffect(() => {
-    if (focusSearch && searchInputRef.current) {
-      searchInputRef.current.focus();
-      searchInputRef.current.select();
-    }
-  }, [focusSearch]);
+
 
   const filtered = useMemo(() => {
     if (!searchQuery.trim()) return items;
