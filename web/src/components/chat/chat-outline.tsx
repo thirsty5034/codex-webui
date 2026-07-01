@@ -22,6 +22,7 @@ const AUTO_HIDE_DELAY = 500; // ms
 export function ChatOutline({ items, onScrollTo, onScrollTop, onScrollBottom }: Props) {
   const [isHovering, setIsHovering] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isVisible = isHovering || isPinned;
@@ -34,12 +35,12 @@ export function ChatOutline({ items, onScrollTo, onScrollTop, onScrollBottom }: 
   }, []);
 
   const startHideTimer = useCallback(() => {
-    if (isPinned) return;
+    if (isPinned || isSearchFocused) return;
     clearHideTimer();
     hideTimerRef.current = setTimeout(() => {
       setIsHovering(false);
     }, AUTO_HIDE_DELAY);
-  }, [isPinned, clearHideTimer]);
+  }, [isPinned, isSearchFocused, clearHideTimer]);
 
   const handleTriggerEnter = useCallback(() => {
     clearHideTimer();
@@ -51,8 +52,12 @@ export function ChatOutline({ items, onScrollTo, onScrollTop, onScrollBottom }: 
   }, [clearHideTimer]);
 
   const handlePanelLeave = useCallback(() => {
+    if (isSearchFocused) {
+      clearHideTimer();
+      return;
+    }
     startHideTimer();
-  }, [startHideTimer]);
+  }, [startHideTimer, isSearchFocused, clearHideTimer]);
 
   const handleTogglePin = useCallback(() => {
     setIsPinned((prev) => !prev);
@@ -111,6 +116,7 @@ export function ChatOutline({ items, onScrollTo, onScrollTop, onScrollBottom }: 
             onScrollTo={onScrollTo}
             onScrollTop={onScrollTop}
             onScrollBottom={onScrollBottom}
+            onSearchFocusChange={useCallback((focused: boolean) => setIsSearchFocused(focused), [])}
           />
         </div>
       </div>
