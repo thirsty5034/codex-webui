@@ -56,26 +56,12 @@ export function parseOutline(timeline: TimelineEntry[]): OutlineItem[] {
         index: i,
       };
 
-      // 如果有文件变更或工具调用，添加子条目
+      // 如果有文件变更，添加子条目
       const children: OutlineItem[] = [];
       for (const item of entry.items) {
         if (item.type === 'fileChange' && item.filePath) {
           children.push({
             label: `📄 ${truncate(item.filePath, 30)}`,
-            type: 'assistant',
-            index: i,
-          });
-        }
-        if (item.type === 'commandExecution' && item.command) {
-          children.push({
-            label: `💻 ${truncate(item.command, 20)}`,
-            type: 'assistant',
-            index: i,
-          });
-        }
-        if (item.type === 'mcpToolCall' && item.toolName) {
-          children.push({
-            label: `🔧 ${item.toolServer}/${item.toolName}`,
             type: 'assistant',
             index: i,
           });
