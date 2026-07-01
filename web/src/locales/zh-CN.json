@@ -630,5 +630,11 @@
   "setting.option.notifications.type.browser": "浏览器通知",
   "setting.option.notifications.type.bark": "Bark 推送",
   "setting.option.notifications.type.both": "两者同时",
-  "setting.option.notifications.type.none": "关闭"
+  "setting.option.notifications.type.none": "关闭",
+  "Chat outline": "对话大纲",
+  "No outline available": "暂无大纲内容",
+  "Top": "顶部",
+  "Bottom": "底部",
+  "Pin": "固定面板",
+  "Unpin": "取消固定"
 }

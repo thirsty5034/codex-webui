@@ -6,7 +6,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { useLayoutStore } from '@/stores/layout-store';
 import { useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { ArrowDown, Bot, CheckSquare, Copy, Loader2, Pencil, Square, X } from 'lucide-react';
+import { ArrowDown, Bot, CheckSquare, Copy, FolderOpen, Loader2, Pencil, Square, X } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import {
@@ -32,6 +32,8 @@ import { tokenUsageReadThreadTokenUsage, turnDiffReadThreadTurnDiffs } from '@/g
 import { useTimelineStore } from '@/stores/timeline-store';
 import { showSnackbar } from '@/stores/snackbar-store';
 import type { TimelineEntry } from '@/types/timeline';
+import { ChatOutline } from './chat-outline';
+import { useChatOutline } from './use-chat-outline';
 import { TurnBlock } from './turn-block';
 import { Button } from '@/components/ui/button';
 import { CopyButton } from './copy-button';
@@ -90,6 +92,9 @@ export function ChatTimeline({ onEditMessage }: Props) {
   });
 
   const canRollback = threadMode === 'live' && !loading && !rollbackThread.isPending;
+
+  // ── Chat Outline ──────────────────────────────────────────────────────
+  const outlineItems = useChatOutline(timeline);
 
   // ── Multi-select helpers ─────────────────────────────────────────────
   const toggleSelectIndex = useCallback((idx: number) => {
@@ -229,6 +234,32 @@ export function ChatTimeline({ onEditMessage }: Props) {
       configurable: true,
     });
   };
+  // ── Chat Outline callbacks ──────────────────────────────────────────────
+  const handleScrollToIndex = useCallback((index: number) => {
+    virtualizer.scrollToIndex(index, {
+      align: 'start',
+      behavior: 'smooth',
+    });
+    shouldAutoScroll.current = false;
+  }, [virtualizer]);
+
+  const handleScrollTop = useCallback(() => {
+    virtualizer.scrollToIndex(0, {
+      align: 'start',
+      behavior: 'smooth',
+    });
+    shouldAutoScroll.current = false;
+  }, [virtualizer]);
+
+  const handleScrollBottom = useCallback(() => {
+    virtualizer.scrollToIndex(timeline.length - 1, {
+      align: 'end',
+      behavior: 'smooth',
+    });
+    shouldAutoScroll.current = true;
+    setShowScrollBottom(false);
+  }, [virtualizer, timeline.length]);
+
 
   const handleScroll = useCallback(() => {
     const el = scrollRef.current;
@@ -312,6 +343,12 @@ export function ChatTimeline({ onEditMessage }: Props) {
                 ? t('Send a message to start the conversation.')
                 : t('Create a new thread to begin.')}
             </p>
+            {threadId && threadCwd && (
+              <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground/60">
+                <FolderOpen className="h-3.5 w-3.5" />
+                {threadCwd}
+              </p>
+            )}
           </div>
         )}
       </div>
@@ -321,11 +358,12 @@ export function ChatTimeline({ onEditMessage }: Props) {
   // ── Virtualized list ────────────────────────────────────────────────
   return (
     <>
-      <div
-        ref={(el) => { if (el) { (scrollRef as React.MutableRefObject<HTMLElement | null>).current = el; applyScrollTopSetter(el); } }}
-        onScroll={handleScroll}
-        className="relative min-h-0 flex-1 overflow-y-auto"
-      >
+      <div className="relative min-h-0 flex-1">
+        <div
+          ref={(el) => { if (el) { (scrollRef as React.MutableRefObject<HTMLElement | null>).current = el; applyScrollTopSetter(el); } }}
+          onScroll={handleScroll}
+          className="relative min-h-0 flex-1 overflow-y-auto"
+        >
         <div
           className="relative px-3 sm:px-4 lg:px-6"
           style={{ height: `${virtualizer.getTotalSize()}px` }}
@@ -381,6 +419,13 @@ export function ChatTimeline({ onEditMessage }: Props) {
             </Button>
           </div>
         )}
+      </div>
+        <ChatOutline
+          items={outlineItems}
+          onScrollTo={handleScrollToIndex}
+          onScrollTop={handleScrollTop}
+          onScrollBottom={handleScrollBottom}
+        />
       </div>
 
       {/* Share mode bottom toolbar */}
