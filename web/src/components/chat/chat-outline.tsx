@@ -63,14 +63,26 @@ export function ChatOutline({ items, onScrollTo, onScrollTop, onScrollBottom }: 
     setIsPinned((prev) => !prev);
   }, []);
 
-  // Cleanup timer on unmount
+  // 当面板内元素失去焦点且新焦点在面板外时，触发自动隐藏
   useEffect(() => {
+    const panel = panelRef.current;
+    if (!panel) return;
+
+    const handleFocusOut = (e: FocusEvent) => {
+      // 新焦点不在面板内，且面板未固定，触发隐藏
+      if (!isPinned && panelRef.current && !panelRef.current.contains(e.relatedTarget as Node)) {
+        startHideTimer();
+      }
+    };
+
+    panel.addEventListener('focusout', handleFocusOut);
     return () => {
+      panel.removeEventListener('focusout', handleFocusOut);
       if (hideTimerRef.current !== null) {
         clearTimeout(hideTimerRef.current);
       }
     };
-  }, []);
+  }, [isPinned, startHideTimer]);
 
   if (items.length === 0) return null;
 
