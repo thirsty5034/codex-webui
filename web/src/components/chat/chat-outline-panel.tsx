@@ -19,7 +19,6 @@ interface Props {
   onScrollTo: (index: number) => void;
   onScrollTop: () => void;
   onScrollBottom: () => void;
-  onSearchFocusChange?: (focused: boolean) => void;
 }
 
 /**

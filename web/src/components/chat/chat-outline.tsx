@@ -22,8 +22,8 @@ const AUTO_HIDE_DELAY = 500; // ms
 export function ChatOutline({ items, onScrollTo, onScrollTop, onScrollBottom }: Props) {
   const [isHovering, setIsHovering] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   const isVisible = isHovering || isPinned;
 
@@ -35,12 +35,16 @@ export function ChatOutline({ items, onScrollTo, onScrollTop, onScrollBottom }: 
   }, []);
 
   const startHideTimer = useCallback(() => {
-    if (isPinned || isSearchFocused) return;
+    if (isPinned) return;
+    // 如果面板内的输入框有焦点（含 IME 输入中），不自动隐藏
+    if (panelRef.current && panelRef.current.contains(document.activeElement)) {
+      return;
+    }
     clearHideTimer();
     hideTimerRef.current = setTimeout(() => {
       setIsHovering(false);
     }, AUTO_HIDE_DELAY);
-  }, [isPinned, isSearchFocused, clearHideTimer]);
+  }, [isPinned, clearHideTimer]);
 
   const handleTriggerEnter = useCallback(() => {
     clearHideTimer();
@@ -52,12 +56,8 @@ export function ChatOutline({ items, onScrollTo, onScrollTop, onScrollBottom }: 
   }, [clearHideTimer]);
 
   const handlePanelLeave = useCallback(() => {
-    if (isSearchFocused) {
-      clearHideTimer();
-      return;
-    }
     startHideTimer();
-  }, [startHideTimer, isSearchFocused, clearHideTimer]);
+  }, [startHideTimer]);
 
   const handleTogglePin = useCallback(() => {
     setIsPinned((prev) => !prev);
@@ -98,6 +98,7 @@ export function ChatOutline({ items, onScrollTo, onScrollTop, onScrollBottom }: 
 
       {/* Outline panel */}
       <div
+        ref={panelRef}
         className={`fixed top-0 z-50 h-full overflow-hidden border-l border-border/30 bg-card/95 shadow-lg backdrop-blur-sm transition-all duration-200 ease-in-out ${
           isVisible ? 'opacity-100' : 'pointer-events-none opacity-0'
         }`}
@@ -116,7 +117,7 @@ export function ChatOutline({ items, onScrollTo, onScrollTop, onScrollBottom }: 
             onScrollTo={onScrollTo}
             onScrollTop={onScrollTop}
             onScrollBottom={onScrollBottom}
-            onSearchFocusChange={useCallback((focused: boolean) => setIsSearchFocused(focused), [])}
+
           />
         </div>
       </div>
